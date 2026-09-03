@@ -1,0 +1,6 @@
+@EgitimPortali.Api_HostAddress = http://localhost:5208
+
+GET {{EgitimPortali.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
