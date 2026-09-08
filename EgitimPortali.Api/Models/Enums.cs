@@ -1,4 +1,4 @@
-﻿namespace EgitimPortali.Api.Models;
+namespace EgitimPortali.Api.Models;
 
 public enum TrainingStatus
 {
