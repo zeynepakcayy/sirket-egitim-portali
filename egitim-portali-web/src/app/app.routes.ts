@@ -3,27 +3,30 @@ import { Login } from './features/auth/login/login';
 import { Register } from './features/auth/register/register'; 
 
 import { Unauthorized } from './features/unauthorized/unauthorized';
+
+import { Layout } from './layout/layout';
+import { Dashboard } from './features/dashboard/dashboard';
+
 import { authGuard } from './core/guards/auth.guard';
-import { roleGuard } from './core/guards/role.guard';
 
 export const routes: Routes = [
+  //layout dışında, tam ekran açılan sayfalar
   { path: 'login', component: Login },
   { path: 'register', component: Register },
   { path: 'unauthorized', component: Unauthorized },
 
-  //geçici test rotaları-layout gelince silinecek
+  //layout içinde, navbar-sidebar ile açılan sayfalar
   {
-    path: 'test-auth',
-    component: Unauthorized,
-    canActivate: [authGuard]
-  },
-  {
-    path: 'test-hr',
-    component: Unauthorized,
-    canActivate: [roleGuard],
-    data: { roles: ['HRManager'] }
+    path: '',
+    component: Layout,
+    canActivate: [authGuard],
+    children: [
+      { path: 'dashboard', component: Dashboard },
+      { path: '', redirectTo: 'dashboard', pathMatch: 'full' }
+    ]
   },
 
-  
-  { path: '', redirectTo: 'login', pathMatch: 'full' }
+  // Bilinmeyen adresler
+  { path: '**', redirectTo: 'dashboard' }
+
 ];
