@@ -1,0 +1,60 @@
+<div class="flex align-items-center justify-content-center min-h-screen surface-ground">
+  <div class="surface-card p-5 border-round shadow-2 w-full" style="max-width: 420px;">
+
+    <h2 class="mt-0 mb-1 text-center">Sign In</h2>
+    <p class="mt-0 mb-4 text-center text-color-secondary">
+      Corporate Training Portal
+    </p>
+
+    <form [formGroup]="form" (ngSubmit)="onSubmit()">
+
+      <div class="mb-3">
+        <label for="email" class="block mb-2">Email</label>
+        <input
+          id="email"
+          type="email"
+          pInputText
+          formControlName="email"
+          class="w-full"
+          placeholder="you@company.com" />
+
+        @if (email.touched && email.errors) {
+          <small class="text-red-500 block mt-1">
+            @if (email.errors['required']) { Email is required. }
+            @if (email.errors['email']) { Enter a valid email address. }
+          </small>
+        }
+      </div>
+
+      <div class="mb-4">
+        <label for="password" class="block mb-2">Password</label>
+        <p-password
+          inputId="password"
+          formControlName="password"
+          styleClass="w-full"
+          [inputStyleClass]="'w-full'"
+          [feedback]="false"
+          [toggleMask]="true"
+          placeholder="Enter your password" />
+
+        @if (password.touched && password.errors?.['required']) {
+          <small class="text-red-500 block mt-1">Password is required.</small>
+        }
+      </div>
+
+      @if (errorMessage()) {
+        <p-message severity="error" styleClass="w-full mb-3">
+            {{ errorMessage() }}
+        </p-message>
+      }
+
+      <p-button
+        type="submit"
+        label="Sign In"
+        icon="pi pi-sign-in"
+        styleClass="w-full"
+        [loading]="loading()" />
+
+    </form>
+  </div>
+</div>

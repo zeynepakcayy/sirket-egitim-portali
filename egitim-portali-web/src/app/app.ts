@@ -1,6 +1,8 @@
 import { Component, signal } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 
+import { Button } from 'primeng/button';
+
 @Component({
   imports: [RouterOutlet],
   selector: 'app-root',
