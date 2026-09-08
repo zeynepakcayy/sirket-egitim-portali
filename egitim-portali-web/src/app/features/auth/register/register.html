@@ -1,0 +1,141 @@
+<div class="flex justify-content-center align-items-center min-h-screen">
+  <div class="surface-card p-5 shadow-2 border-round w-full lg:w-6">
+
+    <h2 class="text-center mb-4">Create Account</h2>
+
+    @if (errorMessage()) {
+      <p-message severity="error" styleClass="w-full mb-3">
+        {{ errorMessage() }}
+      </p-message>
+    }
+
+    <form [formGroup]="registerForm" (ngSubmit)="onSubmit()">
+
+      <!-- FULL NAME -->
+      <div class="mb-3">
+        <label for="fullName" class="block mb-2">Full Name</label>
+        <input
+          pInputText
+          id="fullName"
+          formControlName="fullName"
+          class="w-full"
+          placeholder="John Doe" />
+
+        @if (registerForm.get('fullName')?.touched && registerForm.get('fullName')?.invalid) {
+          <small class="text-red-500 block mt-1">
+            @if (registerForm.get('fullName')?.errors?.['required']) {
+              Full name is required.
+            } @else if (registerForm.get('fullName')?.errors?.['minlength']) {
+              Full name must be at least 3 characters.
+            }
+          </small>
+        }
+      </div>
+
+      <!-- EMAIL -->
+      <div class="mb-3">
+        <label for="email" class="block mb-2">Email</label>
+        <input
+          pInputText
+          id="email"
+          type="email"
+          formControlName="email"
+          class="w-full"
+          placeholder="you@company.com" />
+
+        @if (registerForm.get('email')?.touched && registerForm.get('email')?.invalid) {
+          <small class="text-red-500 block mt-1">
+            @if (registerForm.get('email')?.errors?.['required']) {
+              Email is required.
+            } @else if (registerForm.get('email')?.errors?.['email']) {
+              Please enter a valid email address.
+            }
+          </small>
+        }
+      </div>
+
+      <!-- DEPARTMENT (optional) -->
+      <div class="mb-3">
+        <label for="department" class="block mb-2">Department <span class="text-500">(optional)</span></label>
+        <input
+          pInputText
+          id="department"
+          formControlName="department"
+          class="w-full"
+          placeholder="Engineering" />
+      </div>
+
+      <!-- PASSWORD -->
+      <div class="mb-3">
+        <label for="password" class="block mb-2">Password</label>
+        <p-password
+          inputId="password"
+          formControlName="password"
+          styleClass="w-full"
+          [inputStyle]="{ width: '100%' }"
+          [toggleMask]="true"
+          [feedback]="false" />
+
+        @if (registerForm.get('password')?.touched && registerForm.get('password')?.invalid) {
+          <small class="text-red-500 block mt-1">
+            @if (registerForm.get('password')?.errors?.['required']) {
+              Password is required.
+            } @else {
+              Password must contain:
+              <ul class="mt-1 mb-0 pl-3">
+                @if (registerForm.get('password')?.errors?.['minLength']) {
+                  <li>at least 6 characters</li>
+                }
+                @if (registerForm.get('password')?.errors?.['uppercase']) {
+                  <li>an uppercase letter</li>
+                }
+                @if (registerForm.get('password')?.errors?.['lowercase']) {
+                  <li>a lowercase letter</li>
+                }
+                @if (registerForm.get('password')?.errors?.['digit']) {
+                  <li>a digit</li>
+                }
+                @if (registerForm.get('password')?.errors?.['special']) {
+                  <li>a special character</li>
+                }
+              </ul>
+            }
+          </small>
+        }
+      </div>
+
+      <!-- CONFIRM PASSWORD -->
+      <div class="mb-4">
+        <label for="confirmPassword" class="block mb-2">Confirm Password</label>
+        <p-password
+          inputId="confirmPassword"
+          formControlName="confirmPassword"
+          styleClass="w-full"
+          [inputStyle]="{ width: '100%' }"
+          [toggleMask]="true"
+          [feedback]="false" />
+
+        @if (registerForm.get('confirmPassword')?.touched && registerForm.get('confirmPassword')?.errors?.['required']) {
+          <small class="text-red-500 block mt-1">Please confirm your password.</small>
+        }
+
+        <!-- Bu hata ALANDA değil, GRUPTA duruyor -->
+        @if (registerForm.get('confirmPassword')?.touched && registerForm.errors?.['passwordMismatch']) {
+          <small class="text-red-500 block mt-1">Passwords do not match.</small>
+        }
+      </div>
+
+      <p-button
+        type="submit"
+        label="Sign Up"
+        styleClass="w-full"
+        [loading]="loading()" />
+
+      <div class="text-center mt-3">
+        <span class="text-500">Already have an account? </span>
+        <a routerLink="/login" class="text-primary no-underline cursor-pointer">Sign in</a>
+      </div>
+
+    </form>
+  </div>
+</div>
