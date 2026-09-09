@@ -22,6 +22,11 @@ export const routes: Routes = [
     canActivate: [authGuard],
     children: [
       { path: 'dashboard', component: Dashboard },
+      { path: 'my-applications', component: Dashboard },
+      { path: 'my-certificates', component: Dashboard },
+      { path: 'trainings', component: Dashboard },
+      { path: 'trainings/create', component: Dashboard },
+      { path: 'approvals', component: Dashboard },
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' }
     ]
   },

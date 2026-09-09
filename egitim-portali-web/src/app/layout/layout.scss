@@ -1,0 +1,128 @@
+.layout-wrapper {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  grid-template-rows: 60px 1fr;
+  grid-template-areas:
+    "navbar  navbar"
+    "sidebar content";
+  min-height: 100vh;
+}
+
+.layout-navbar {
+  grid-area: navbar;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;   // başlık solda, aksiyonlar sağda
+  padding: 0 1.5rem;
+  background: var(--p-surface-900);
+  border-bottom: 1px solid var(--p-surface-700);
+}
+
+.navbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.navbar-search {
+  position: relative;
+  display: flex;
+  align-items: center;
+
+  i {
+    position: absolute;
+    left: 0.75rem;
+    color: var(--p-text-muted-color);
+    font-size: 0.875rem;
+  }
+
+  input {
+    padding-left: 2.25rem;
+    width: 240px;
+    height: 36px;
+    background: var(--p-surface-800);
+    border-color: var(--p-surface-700);
+  }
+}
+
+.navbar-icon-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--p-text-muted-color);
+  font-size: 1.1rem;
+  padding: 0.5rem;
+  border-radius: 50%;
+  display: flex;
+
+  &:hover {
+    background: var(--p-surface-800);
+    color: var(--p-text-color);
+  }
+}
+
+:host ::ng-deep .navbar-avatar {
+  cursor: pointer;
+  background: var(--p-primary-color);
+  color: var(--p-primary-contrast-color);
+  font-weight: 600;
+}
+
+.navbar-title {
+  font-weight: 700;
+  font-size: 1.25rem;
+  color: var(--p-text-color);
+}
+
+.layout-sidebar {
+  grid-area: sidebar;
+  padding: 1rem 0.75rem;
+  background: var(--p-surface-900);
+  border-right: 1px solid var(--p-surface-700);
+}
+
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.sidebar-item {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  color: var(--p-text-muted-color);
+  text-decoration: none;
+  font-size: 0.95rem;
+  transition: background 0.15s, color 0.15s;
+
+  i {
+    font-size: 1.1rem;
+  }
+
+  &:hover {
+    background: var(--p-surface-800);
+    color: var(--p-text-color);
+  }
+}
+
+.sidebar-item-active {
+  background: var(--p-surface-800);
+  color: var(--p-text-color);
+  font-weight: 600;
+}
+
+.sidebar-divider {
+  height: 1px;
+  background: var(--p-surface-700);
+  margin: 1rem 0.5rem;
+}
+
+.layout-content {
+  grid-area: content;
+  padding: 2rem;
+  background: var(--p-surface-950);
+  overflow-y: auto;
+}

@@ -2,12 +2,65 @@
 
   <!-- NAVBAR — D2'de doldurulacak -->
   <header class="layout-navbar">
+
     <span class="navbar-title">Training Portal</span>
+
+    <div class="navbar-actions">
+
+      <!-- ARAMA — şimdilik işlevsiz -->
+      <span class="navbar-search">
+        <i class="pi pi-search"></i>
+        <input pInputText type="text" placeholder="Search..." />
+      </span>
+
+      <!-- BİLDİRİM — şimdilik işlevsiz -->
+      <button class="navbar-icon-btn" type="button" aria-label="Notifications">
+        <i class="pi pi-bell"></i>
+      </button>
+
+      <!-- AVATAR + MENÜ -->
+      <p-avatar
+        [label]="initials()"
+        shape="circle"
+        styleClass="navbar-avatar"
+        (click)="userMenu.toggle($event)" />
+
+      <p-menu #userMenu [model]="userMenuItems" [popup]="true" />
+
+    </div>
   </header>
 
   <!-- SIDEBAR — D3'te doldurulacak -->
   <aside class="layout-sidebar">
-    <span class="text-500">menu goes here</span>
+
+    <nav class="sidebar-nav">
+      @for (item of mainNavItems(); track item.route) {
+        
+          <a class="sidebar-item"
+          [routerLink]="item.route"
+          routerLinkActive="sidebar-item-active">
+          <i [class]="item.icon"></i>
+          <span>{{ item.label }}</span>
+        </a>
+      }
+    </nav>
+
+    @if (managementNavItems().length > 0) {
+      <div class="sidebar-divider"></div>
+
+      <nav class="sidebar-nav">
+        @for (item of managementNavItems(); track item.route) {
+        
+            <a class="sidebar-item"
+            [routerLink]="item.route"
+            routerLinkActive="sidebar-item-active">
+            <i [class]="item.icon"></i>
+            <span>{{ item.label }}</span>
+          </a>
+        }
+      </nav>
+    }
+
   </aside>
 
   <!-- SAYFALAR BURAYA GELİYOR -->
