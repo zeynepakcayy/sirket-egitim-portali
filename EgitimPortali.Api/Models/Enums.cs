@@ -3,9 +3,9 @@ namespace EgitimPortali.Api.Models;
 public enum TrainingStatus
 {
     Planned,
-    Active,
-    Cancelled,
-    Completed
+    Ongoing,
+    Completed,
+    Cancelled
 }
 
 public enum ApprovalStatus

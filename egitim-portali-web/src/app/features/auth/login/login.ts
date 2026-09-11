@@ -1,11 +1,13 @@
 import { Component, inject, signal } from '@angular/core';
-import { Router } from '@angular/router';
+
+import { ActivatedRoute, Router } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 
 import { Button } from 'primeng/button';
 import { InputText } from 'primeng/inputtext';
 import { Password } from 'primeng/password';
 import { Message } from 'primeng/message';
+
 
 import { AuthService } from '../../../core/services/auth.service';
 
@@ -18,6 +20,7 @@ export class Login {
   //Reactive Forms'u kısa yazmayı sağlıyor. fb'ye aktarıyoruz. 
   private fb = inject(FormBuilder);
   private authService = inject(AuthService);
+  private route = inject(ActivatedRoute);
   private router = inject(Router);
 
   loading = signal(false);
@@ -54,7 +57,10 @@ export class Login {
     }).subscribe({
       next: () => {
         this.loading.set(false);
-        this.router.navigate(['/']);
+        //guard returnUrl varsa oraya, yoksa dashboard'a yönlendiriliyor
+        const returnUrl = this.route.snapshot.queryParams['returnUrl'];
+        const safeUrl = returnUrl?.startsWith('/') ? returnUrl : '/dashboard';
+        this.router.navigateByUrl(safeUrl);
       },
       error: (err) => {
         this.loading.set(false);

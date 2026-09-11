@@ -13,7 +13,6 @@ public class Training
     public string Location { get; set; } = string.Empty;
     public int Capacity { get; set; }
     public string Category { get; set; } = string.Empty;
-
     public TrainingStatus Status { get; set; } = TrainingStatus.Planned;
 
     public ICollection<Application> Applications { get; set; } = new List<Application>();
