@@ -16,6 +16,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 
+using EgitimPortali.Api.DTOs.Common;
+
 namespace EgitimPortali.Api.Controllers;
 
 [ApiController]
@@ -30,28 +32,56 @@ public class TrainingsController : ControllerBase
         _context = context;
     }
 
-    // GET /api/trainings
+    // GET /api/trainings?page=1&pageSize=10
+    // Eğitimleri sayfa sayfa döndürür; her istekte veritabanından sadece istenen sayfa çekilir.
+    // Neden: Tüm eğitimleri tek seferde çekmek, kayıt sayısı arttıkça veritabanını ve ağı yorar.
     [HttpGet]
-    public async Task<ActionResult<List<TrainingListDto>>> GetTrainings()
+    public async Task<ActionResult<PagedResult<TrainingListDto>>> GetTrainings(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 10)
     {
-        var trainings = await _context.Trainings
-            .Include(t => t.Instructor)
-            .Include(t => t.Applications)
+        // Mantıksız değerleri düzeltiyoruz (ör. page=0 ya da pageSize=100000)
+        if (page < 1) page = 1;
+        if (pageSize < 1) pageSize = 10;
+        if (pageSize > 50) pageSize = 50;
+
+        //henüz veritabanına gidilmiyor, sadece sorgu tarif ediliyor.
+        //sırasız sayfalamada aynı kayıt iki sayfada birden çıkabilir.
+        var query = _context.Trainings
+            .OrderBy(t => t.StartDate)
+            .ThenBy(t => t.Id);
+
+        // 1. sorgu: toplam kayıt sayısı (sayfaya bölmeden ÖNCE sayılmalı)
+        var totalCount = await query.CountAsync();
+
+        // 2. sorgu: sadece istenen sayfanın kayıtları
+        var items = await query
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Select(t => new TrainingListDto
+            {
+                Id = t.Id,
+                Title = t.Title,
+                //"?." kullanılamaz, veritabanı sorgusu içinde derleme hatası verir
+                InstructorName = t.Instructor != null ? t.Instructor.FullName : string.Empty,
+                StartDate = t.StartDate,
+                EndDate = t.EndDate,
+                Location = t.Location,
+                Category = t.Category,
+                Capacity = t.Capacity,
+                // Sayımı artık veritabanı yapıyor, başvurular hafızaya çekilmiyor
+                EnrolledCount = t.Applications.Count(a => a.ApprovalStatus == ApprovalStatus.Approved),
+                Status = t.Status.ToString()
+            })
             .ToListAsync();
 
-        var result = trainings.Select(t => new TrainingListDto
+        var result = new PagedResult<TrainingListDto>
         {
-            Id = t.Id,
-            Title = t.Title,
-            InstructorName = t.Instructor?.FullName ?? string.Empty,
-            StartDate = t.StartDate,
-            EndDate = t.EndDate,
-            Location = t.Location,
-            Category = t.Category,
-            Capacity = t.Capacity,
-            EnrolledCount = t.Applications.Count(a => a.ApprovalStatus == ApprovalStatus.Approved),
-            Status = t.Status.ToString()
-        }).ToList();
+            Items = items,
+            TotalCount = totalCount,
+            Page = page,
+            PageSize = pageSize
+        };
 
         return Ok(result);
     }
