@@ -9,6 +9,8 @@ import { Dashboard } from './features/dashboard/dashboard';
 
 import { authGuard } from './core/guards/auth.guard';
 
+import { TrainingCatalog } from './features/trainings/training-catalog/training-catalog';
+
 export const routes: Routes = [
   //layout dışında, tam ekran açılan sayfalar
   { path: 'login', component: Login },
@@ -24,7 +26,7 @@ export const routes: Routes = [
       { path: 'dashboard', component: Dashboard },
       { path: 'my-applications', component: Dashboard },
       { path: 'my-certificates', component: Dashboard },
-      { path: 'trainings', component: Dashboard },
+      { path: 'trainings', component: TrainingCatalog },
       { path: 'trainings/create', component: Dashboard },
       { path: 'approvals', component: Dashboard },
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' }

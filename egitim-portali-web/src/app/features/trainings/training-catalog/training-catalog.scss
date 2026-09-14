@@ -1,0 +1,120 @@
+.catalog-page {
+  padding: 1.5rem;
+}
+
+.breadcrumb {
+  color: var(--p-text-muted-color);
+  font-size: 0.875rem;
+  margin: 0;
+}
+
+.page-title {
+  font-size: 1.875rem;
+  font-weight: 700;
+  margin: 0.25rem 0 1.5rem 0;
+}
+
+/* auto-fill + minmax: kart en az 320px, kalan boşluk paylaştırılır.
+   Kaç sütun olacağına tarayıcı karar veriyor, biz yazmıyoruz. */
+.training-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 1.25rem;
+}
+
+.training-card {
+  background: var(--p-surface-800);
+  border: 1px solid var(--p-surface-700);
+  border-radius: 8px;
+  padding: 1.25rem;
+
+  /* Kartlar aynı satırda eşit yükseklikte dursun, düğme hep altta olsun */
+  display: flex;
+  flex-direction: column;
+}
+
+.card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.badge {
+  border-radius: 4px;
+  padding: 0.125rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.badge-open {
+  background: #1f6f43;
+  color: #d7f5e4;
+}
+
+.badge-waitlist {
+  background: #7a5a12;
+  color: #fbeccb;
+}
+
+.badge-cancelled {
+  background: #7a2626;
+  color: #fbd5d5;
+}
+
+.capacity-bar {
+  height: 4px;
+  background: var(--p-surface-700);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-top: 0.25rem;
+}
+
+.capacity-fill {
+  height: 100%;
+  background: var(--p-text-muted-color);
+  border-radius: 2px;
+}
+
+.category-tag {
+  border: 1px solid var(--p-surface-600);
+  border-radius: 4px;
+  padding: 0.125rem 0.5rem;
+  font-size: 0.75rem;
+  color: var(--p-text-muted-color);
+}
+
+.card-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin: 0 0 0.75rem 0;
+}
+
+.card-meta {
+  color: var(--p-text-muted-color);
+  font-size: 0.875rem;
+
+  /* margin-top: auto — kalan boşluğu yukarı iter, düğme dibe yapışır */
+  margin-bottom: auto;
+
+  p {
+    margin: 0 0 0.25rem 0;
+  }
+}
+
+.details-button {
+  margin-top: 1rem;
+  width: 100%;
+  padding: 0.5rem;
+  background: transparent;
+  border: 1px solid var(--p-surface-600);
+  border-radius: 6px;
+  color: var(--p-text-color);
+  cursor: pointer;
+
+  &:hover {
+    background: var(--p-surface-700);
+  }
+}

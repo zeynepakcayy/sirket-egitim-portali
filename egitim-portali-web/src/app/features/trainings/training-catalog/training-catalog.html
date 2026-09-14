@@ -1,0 +1,35 @@
+<div class="catalog-page">
+  <p class="breadcrumb">Trainings</p>
+  <h1 class="page-title">Training Catalog</h1>
+
+  <!-- @for, Angular'ın yeni döngü yazımı. Dizideki her eleman için
+       içindeki bloğu bir kez çiziyor. track, Angular'a "bu kayıtları
+       id ile ayırt et" diyor — liste değişince her şeyi baştan
+       çizmek yerine sadece değişeni güncelliyor. -->
+  <div class="training-grid">
+    @for (training of trainings(); track training.id) {
+      <div class="training-card">
+        <div class="card-top">
+          <span class="category-tag">{{ training.category }}</span>
+          <span class="badge" [class]="getBadgeClass(training)">
+            {{ getBadgeLabel(training) }}
+          </span>
+        </div>
+
+        <h3 class="card-title">{{ training.title }}</h3>
+
+        <div class="card-meta">
+          <p>{{ training.instructorName }}</p>
+          <p>{{ training.startDate | date: 'd MMM y, HH:mm' }}</p>
+          <p>{{ training.location }}</p>
+          <p>{{ training.enrolledCount }}/{{ training.capacity }}</p>
+          <div class="capacity-bar">
+            <div class="capacity-fill" [style.width.%]="getFillPercent(training)"></div>
+          </div>
+        </div>
+
+        <button class="details-button">View details</button>
+      </div>
+    }
+  </div>
+</div>
