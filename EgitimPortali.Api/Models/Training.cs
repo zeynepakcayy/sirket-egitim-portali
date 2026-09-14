@@ -3,6 +3,9 @@ namespace EgitimPortali.Api.Models;
 public class Training
 {
     public Guid Id { get; set; }
+
+    // Eğitimi açan ve yöneten kişi. Dış eğitmenli eğitimlerde bu kişi
+    // eğitimi veren değil, sisteme giren ve düzenleme yetkisi olan kişi
     public Guid InstructorUserId { get; set; }
     public ApplicationUser? Instructor { get; set; }
 
@@ -13,7 +16,18 @@ public class Training
     public string Location { get; set; } = string.Empty;
     public int Capacity { get; set; }
     public string Category { get; set; } = string.Empty;
-    public TrainingStatus Status { get; set; } = TrainingStatus.Planned;
+
+    /*
+    dış eğitmen bilgileri
+    kişiye kullanıcı hesabu açılmaz, bilgileri tutulur
+    bilgiler boşsa eğitmen olarak eğitimi açan kişi gösterilir
+    */
+    public string? ExternalInstructorName {get; set;}
+    public string? ExternalInstructorEmail {get; set;}
+    public string? ExternalInstructorOrganization {get; set;}
+
+
+    public TrainingStatus Status { get; set; } = TrainingStatus.OpenForApplication;
 
     public ICollection<Application> Applications { get; set; } = new List<Application>();
     

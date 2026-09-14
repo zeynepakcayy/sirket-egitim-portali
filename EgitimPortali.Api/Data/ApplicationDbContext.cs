@@ -33,7 +33,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, IdentityR
             //eğitimin, tek bir eğitmeni var
             .HasOne(t => t.Instructor)
             //bir eğitmenin, birden çok eğitim açabilmesini sağlar
-            .WithMany()
+            .WithMany(u => u.TrainingsCreated)
             //klon üstünden bağlantı kurar
             .HasForeignKey(t => t.InstructorUserId)
             //biri eğitmeni silmeye çalışırsa ve hâlâ açtığı eğitimler varsa, silme işlemini engelle

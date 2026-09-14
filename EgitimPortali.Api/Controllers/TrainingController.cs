@@ -38,32 +38,74 @@ public class TrainingsController : ControllerBase
     [HttpGet]
     public async Task<ActionResult<PagedResult<TrainingListDto>>> GetTrainings(
         [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 10)
+        [FromQuery] int pageSize = 10,
+        [FromQuery] string? category = null,
+        [FromQuery] string? instructor = null,
+        [FromQuery] string? sort = null)
     {
         // Mantıksız değerleri düzeltiyoruz (ör. page=0 ya da pageSize=100000)
         if (page < 1) page = 1;
         if (pageSize < 1) pageSize = 10;
         if (pageSize > 50) pageSize = 50;
 
-        //henüz veritabanına gidilmiyor, sadece sorgu tarif ediliyor.
-        //sırasız sayfalamada aynı kayıt iki sayfada birden çıkabilir.
-        var query = _context.Trainings
-            .OrderBy(t => t.StartDate)
-            .ThenBy(t => t.Id);
+
+        // Sorgu parça parça kuruluyor. Buradaki hiçbir satır veritabanına gitmiyor —
+        // EF Core sadece "ne isteneceğini" not alıyor, sonunda tek bir SQL üretiyor.
+        var query = _context.Trainings.AsQueryable();
+
+        // Catalog kuralı: sadece başlangıç tarihi henüz gelmemiş eğitimler listelenir.
+        // Tarihi geçmiş, devam eden ve tamamlanmış eğitimler böylece kendiliğinden elenir.
+        var now = DateTime.UtcNow;
+        query = query.Where(t => t.StartDate > now);
+
+
+        // Kategori filtresi. Parametre hiç gönderilmediyse (All categories seçiliyse)
+        // bu satır atlanır ve tüm kategoriler listelenir.
+        if (!string.IsNullOrWhiteSpace(category))
+            query = query.Where(t => t.Category == category);
+
+
+        // Eğitmen filtresi. Gelen isim iki yerde birden aranır:
+        // dış eğitmenli eğitimlerde ExternalInstructorName, diğerlerinde eğitimi açan kişinin adı.
+        if (!string.IsNullOrWhiteSpace(instructor))
+        {
+            query = query.Where(t =>
+                !string.IsNullOrEmpty(t.ExternalInstructorName)
+                    ? t.ExternalInstructorName == instructor
+                    : (t.Instructor != null && t.Instructor.FullName == instructor));
+        }
+
 
         // 1. sorgu: toplam kayıt sayısı (sayfaya bölmeden ÖNCE sayılmalı)
         var totalCount = await query.CountAsync();
 
+
+        // Sıralama. "latest" gönderilirse en uzak tarih başa gelir,
+        // diğer her durumda (varsayılan dahil) en yakın tarih başa gelir.
+        // ThenBy(t => t.Id) şart: aynı tarihli iki eğitimin sırası her sorguda
+        // aynı kalsın diye. Sabit sıra olmazsa aynı kayıt iki sayfada çıkabilir.
+        if (sort == "latest")
+            query = query.OrderByDescending(t => t.StartDate).ThenBy(t => t.Id);
+        else
+            query = query.OrderBy(t => t.StartDate).ThenBy(t => t.Id);
+
+
         // 2. sorgu: sadece istenen sayfanın kayıtları
         var items = await query
+
+
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .Select(t => new TrainingListDto
             {
                 Id = t.Id,
                 Title = t.Title,
-                //"?." kullanılamaz, veritabanı sorgusu içinde derleme hatası verir
-                InstructorName = t.Instructor != null ? t.Instructor.FullName : string.Empty,
+                // Dış eğitmen adı doluysa onu, değilse eğitimi açan kişinin adını yazıyoruz.
+                // Karar burada veriliyor ki frontend her kartta aynı kontrolü tekrar yapmasın.
+                InstructorName = !string.IsNullOrEmpty(t.ExternalInstructorName)
+                    ? t.ExternalInstructorName
+                    : (t.Instructor != null ? t.Instructor.FullName : string.Empty),
+
                 StartDate = t.StartDate,
                 EndDate = t.EndDate,
                 Location = t.Location,
@@ -98,19 +140,42 @@ public class TrainingsController : ControllerBase
         if (training == null)
             return NotFound();
 
+        // İsteği gönderen kişinin kimliğini token'dan okuyoruz.
+        // Aşağıda, bu eğitimi açan kişiyle aynı mı diye karşılaştıracağız.
+        var currentUserIdText = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        Guid.TryParse(currentUserIdText, out var currentUserId);
+
         var dto = new TrainingDetailDto
         {
             Id = training.Id,
             Title = training.Title,
             Description = training.Description,
-            InstructorName = training.Instructor?.FullName ?? string.Empty,
+
+            //dış eğitmen adın doluysa onu değilse eğitimi açan kişinin adı
+            InstructorName = !string.IsNullOrEmpty(training.ExternalInstructorName)
+                ? training.ExternalInstructorName
+                : training.Instructor?.FullName ?? string.Empty,
+            // Dış eğitmende kurum, iç eğitmende departman. İkisi de boşsa null kalır,
+            // frontend o satırı hiç göstermez.
+            InstructorAffiliation = !string.IsNullOrEmpty(training.ExternalInstructorName)
+                ? training.ExternalInstructorOrganization
+                : training.Instructor?.Department,
+
+            InstructorEmail = !string.IsNullOrEmpty(training.ExternalInstructorName)
+                ? training.ExternalInstructorEmail
+                : training.Instructor?.Email,
+
+
             StartDate = training.StartDate,
             EndDate = training.EndDate,
             Location = training.Location,
             Category = training.Category,
             Capacity = training.Capacity,
             EnrolledCount = training.Applications.Count(a => a.ApprovalStatus == ApprovalStatus.Approved),
-            Status = training.Status.ToString()
+            Status = training.Status.ToString(),
+
+            //eğitimi açan kili isteği gönderen kişiyle aynı mı
+            IsOwner = training.InstructorUserId == currentUserId
         };
 
         return Ok(dto);
@@ -138,7 +203,7 @@ public class TrainingsController : ControllerBase
             Location = dto.Location,
             Category = dto.Category,
             Capacity = dto.Capacity,
-            Status = TrainingStatus.Planned
+            Status = TrainingStatus.OpenForApplication
         };
 
         _context.Trainings.Add(training);
@@ -157,6 +222,19 @@ public class TrainingsController : ControllerBase
         var training = await _context.Trainings.FindAsync(id);
         if (training == null)
             return NotFound();
+
+
+        // Sahiplik kontrolü: isteği gönderen kişiyi token'dan okuyup
+        // eğitimi açan kişiyle karşılaştırıyoruz.
+        // Frontend'de Edit düğmesini gizlemek koruma sağlamaz, istek elle gönderilebilir.
+        var currentUserIdText = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (currentUserIdText == null || !Guid.TryParse(currentUserIdText, out var currentUserId))
+            return Unauthorized();
+
+        if (training.InstructorUserId != currentUserId)
+            return Forbid();
+
+
 
         // İstemciden gelen "Completed" gibi bir metni enum değerine çeviriyoruz.
         // Geçersiz bir metin gelirse (yazım hatası vs.) uygulama çökmesin, 400 dönsün diye TryParse kullanıyoruz.
@@ -190,9 +268,49 @@ public class TrainingsController : ControllerBase
         if (training == null)
             return NotFound();
 
+
+
+        // Sahiplik kontrolü: rol yetmez, eğitimi sadece onu açan kişi düzenleyebilir.
+        // Frontend'de Edit düğmesini gizlemek koruma sağlamaz, istek elle gönderilebilir.
+        var currentUserIdText = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (currentUserIdText == null || !Guid.TryParse(currentUserIdText, out var currentUserId))
+            return Unauthorized();
+
+        if (training.InstructorUserId != currentUserId)
+            return Forbid();
+
+
+        
+
         training.Status = TrainingStatus.Cancelled;
         await _context.SaveChangesAsync();
 
         return NoContent();
     }
+
+
+        // GET /api/trainings/instructors
+    // Catalog'daki eğitmen filtresi için, tekrarsız eğitmen adları listesi.
+    // Neden ayrı endpoint: GET /api/trainings sayfalı çalışıyor, frontend sadece
+    // o anki sayfayı görüyor. Açılır liste ise tüm eğitmenleri göstermeli.
+    [HttpGet("instructors")]
+    public async Task<ActionResult<List<string>>> GetInstructorNames()
+    {
+        var now = DateTime.UtcNow;
+
+        var names = await _context.Trainings
+            .Where(t => t.StartDate > now)
+            // Liste kartındaki isimle aynı kural: dış eğitmen varsa onun adı.
+            .Select(t => !string.IsNullOrEmpty(t.ExternalInstructorName)
+                ? t.ExternalInstructorName
+                : (t.Instructor != null ? t.Instructor.FullName : string.Empty))
+            .Where(name => name != string.Empty)
+            .Distinct()
+            .OrderBy(name => name)
+            .ToListAsync();
+
+        return Ok(names);
+    }
+
+
 }

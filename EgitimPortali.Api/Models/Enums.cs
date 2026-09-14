@@ -2,7 +2,7 @@ namespace EgitimPortali.Api.Models;
 
 public enum TrainingStatus
 {
-    Planned,
+    OpenForApplication,   // eski adı Planned'dı. Veritabanındaki karşılığı hâlâ 0.
     Ongoing,
     Completed,
     Cancelled
