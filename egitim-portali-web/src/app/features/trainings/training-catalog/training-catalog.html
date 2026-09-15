@@ -2,34 +2,206 @@
   <p class="breadcrumb">Trainings</p>
   <h1 class="page-title">Training Catalog</h1>
 
-  <!-- @for, Angular'ın yeni döngü yazımı. Dizideki her eleman için
-       içindeki bloğu bir kez çiziyor. track, Angular'a "bu kayıtları
-       id ile ayırt et" diyor — liste değişince her şeyi baştan
-       çizmek yerine sadece değişeni güncelliyor. -->
-  <div class="training-grid">
-    @for (training of trainings(); track training.id) {
-      <div class="training-card">
-        <div class="card-top">
-          <span class="category-tag">{{ training.category }}</span>
-          <span class="badge" [class]="getBadgeClass(training)">
-            {{ getBadgeLabel(training) }}
-          </span>
+  <!--
+  filtre çubuğu
+  yan yana üç açılır liste
+  [ngModel] signal'daki değeri ekrana yazıyor
+  (onChange) seçim yapılınca bileşendeki metodu çağırıyor
+  -->
+   <div class="filter-bar">
+    <p-select
+      [options]="categoryOptions"
+      [ngModel]="selectedCategory()"
+      (onChange)="onCategoryChange($event.value)"
+      optionLabel="label"
+      optionValue="value"
+      placeholder="All categories"
+      styleClass="filter-select" />
+
+    <p-select
+      [options]="instructorOptions()"
+      [ngModel]="selectedInstructor()"
+      (onChange)="onInstructorChange($event.value)"
+      optionLabel="label"
+      optionValue="value"
+      placeholder="All instructors"
+      [filter]="true"
+      filterBy="label"
+      filterPlaceholder="Search instructor"
+      styleClass="filter-select" />
+
+    <p-select
+      [options]="sortOptions"
+      [ngModel]="selectedSort()"
+      (onChange)="onSortChange($event.value)"
+      optionLabel="label"
+      optionValue="value"
+      styleClass="filter-select" />
+  </div>
+
+
+
+  <!-- Üç durum birbirini dışlıyor: ya yükleniyor, ya hata var,
+      ya da sonuç gösteriliyor. @if/@else if zinciri bunu kuruyor,
+      aynı anda ikisi birden görünemiyor. -->
+
+  @if (loading()) {
+    <!-- İskeletler gerçek kartla aynı ızgarayı kullanıyor ki
+         veri gelince düzen zıplamasın. -->
+    <div class="training-grid">
+      @for (item of skeletonCards; track $index) {
+        <div class="skeleton-card">
+          <p-skeleton width="6rem" height="1.25rem" borderRadius="4px" />
+          <p-skeleton width="80%" height="1.5rem" borderRadius="4px" />
+          <p-skeleton width="50%" height="1rem" borderRadius="4px" />
+          <p-skeleton width="60%" height="1rem" borderRadius="4px" />
+          <p-skeleton width="100%" height="2.25rem" borderRadius="6px" />
         </div>
-
-        <h3 class="card-title">{{ training.title }}</h3>
-
-        <div class="card-meta">
-          <p>{{ training.instructorName }}</p>
-          <p>{{ training.startDate | date: 'd MMM y, HH:mm' }}</p>
-          <p>{{ training.location }}</p>
-          <p>{{ training.enrolledCount }}/{{ training.capacity }}</p>
-          <div class="capacity-bar">
-            <div class="capacity-fill" [style.width.%]="getFillPercent(training)"></div>
+      }
+    </div>
+  }
+  @else if (loadError()) {
+    <div class="state-box">
+      <p class="state-title">Could not load trainings.</p>
+      <p class="state-text">Please check your connection and try again.</p>
+      <button class="details-button state-button" (click)="loadTrainings()">Try again</button>
+    </div>
+  }
+  @else if (!pending() && trainings().length === 0) {
+    <div class="state-box">
+      <p class="state-title">No trainings found.</p>
+      <p class="state-text">Try changing the filters above.</p>
+    </div>
+  }
+  @else {
+    <!-- @for, Angular'ın yeni döngü yazımı. Dizideki her eleman için
+         içindeki bloğu bir kez çiziyor. track, Angular'a "bu kayıtları
+         id ile ayırt et" diyor — liste değişince her şeyi baştan
+         çizmek yerine sadece değişeni güncelliyor. -->
+    <div class="training-grid">
+      @for (training of trainings(); track training.id) {
+        <div class="training-card">
+          <div class="card-top">
+            <span class="category-tag">{{ training.category }}</span>
+            <span class="badge" [class]="getBadgeClass(training)">
+              {{ getBadgeLabel(training) }}
+            </span>
           </div>
-        </div>
 
-        <button class="details-button">View details</button>
+          <h3 class="card-title">{{ training.title }}</h3>
+
+          <div class="card-meta">
+            <p>{{ training.instructorName }}</p>
+            <p>{{ training.startDate | date: 'd MMM y, HH:mm' }}</p>
+            <p>{{ training.location }}</p>
+            <p>{{ training.enrolledCount }}/{{ training.capacity }}</p>
+            <div class="capacity-bar">
+              <div class="capacity-fill" [style.width.%]="getFillPercent(training)"></div>
+            </div>
+          </div>
+
+          <button class="details-button" (click)="openDetail(training.id)">View details</button>
+        </div>
+      }
+    </div>
+  }
+
+  <!-- 
+    Sayfalama
+    [first] ve [rows] bizden gidiyor, (onPageChange) geri geliyor.
+    Paginator kendi sayfa durumunu tutuyor 
+    biz [first] ile her seferinde ona doğru sayfayı söylüyoruz
+    filtre değişip başa döndüğümüzde ekrandaki numara da düzeliyor
+  -->
+  <p-paginator
+    [first]="getFirstRecord()"
+    [rows]="pageSize"
+    [totalRecords]="totalCount()"
+    [alwaysShow]="false"
+    [showCurrentPageReport]="true"
+    currentPageReportTemplate="Showing {first} to {last} of {totalRecords}"
+    (onPageChange)="onPageChange($event)" />
+
+
+  <!-- 
+    Büyük kart. [showHeader]="false" ile PrimeNG'nin hazır başlık
+    bölümünü kapattık, içeriğin tamamını kendimiz yazıyoruz.
+    [visible] tek yön, (visibleChange) geri dönüş — iki yönlü
+    bağlama signal'ı bozar
+  -->
+  <p-dialog
+    [visible]="detailVisible()"
+    (visibleChange)="detailVisible.set($event)"
+    [modal]="true"
+    [showHeader]="false"
+    [dismissableMask]="true"
+    [draggable]="false"
+    [resizable]="false"
+    [style]="{ width: '520px' }">
+
+    @if (detailLoading()) {
+      <p class="detail-loading">Loading...</p>
+    }
+
+    @if (selectedTraining(); as detail) {
+      <div class="detail-head">
+        <span class="category-tag">{{ detail.category }}</span>
+        <span class="badge" [class]="getBadgeClass(detail)">
+          {{ getBadgeLabel(detail) }}
+        </span>
+      </div>
+
+      <h2 class="detail-title">{{ detail.title }}</h2>
+
+      <table class="detail-table">
+        <tr>
+          <td class="detail-label">Date</td>
+          <td>{{ detail.startDate | date: 'd MMM y, HH:mm' }}</td>
+        </tr>
+        <tr>
+          <td class="detail-label">Location</td>
+          <td>{{ detail.location }}</td>
+        </tr>
+        <tr>
+          <td class="detail-label">Capacity</td>
+          <td>{{ detail.enrolledCount }} / {{ detail.capacity }}</td>
+        </tr>
+      </table>
+
+      <div class="capacity-bar">
+        <div class="capacity-fill" [style.width.%]="getFillPercent(detail)"></div>
+      </div>
+
+      
+      <p class="detail-section-label">About this training</p>
+      <p class="detail-description">{{ detail.description }}</p>
+
+      <div class="instructor-box">
+        <p class="detail-section-label">Instructor</p>
+        <p class="instructor-name">{{ detail.instructorName }}</p>
+        @if (detail.instructorAffiliation) {
+          <p class="instructor-line">{{ detail.instructorAffiliation }}</p>
+        }
+        @if (detail.instructorEmail) {
+          <p class="instructor-line">{{ detail.instructorEmail }}</p>
+        }
+      </div>
+
+      <div class="detail-actions">
+        <button class="details-button detail-close" (click)="closeDetail()">Close</button>
+        @if (detail.status !== 'Cancelled') {
+          @if (detail.isOwner) {
+            <button class="details-button detail-primary">Edit</button>
+          } @else {
+            <button class="details-button detail-primary" (click)="applyToTraining()">
+              {{ getBadgeLabel(detail) }}
+            </button>
+          }
+        }
       </div>
     }
-  </div>
+  </p-dialog>
+
+
+
 </div>

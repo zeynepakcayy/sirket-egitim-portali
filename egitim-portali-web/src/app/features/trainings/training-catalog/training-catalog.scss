@@ -1,5 +1,12 @@
 .catalog-page {
   padding: 1.5rem;
+
+  /* Sayfa en az ekran yüksekliği kadar olsun ve içindekiler
+     alt alta dizilsin. İkisi de aşağıdaki margin-top: auto
+     çalışsın diye gerekli. */
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100vh - 60px - 3rem);
 }
 
 .breadcrumb {
@@ -13,6 +20,27 @@
   font-weight: 700;
   margin: 0.25rem 0 1.5rem 0;
 }
+
+
+/* Filtre çubuğu
+üç açılır liste yan yana.
+flex-wrap sayesinde dar ekranda sığmayan alta iniyor
+*/
+.filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+/* p-select varsayılanda içeriği kadar daralıyor, üç kutu farklı genişlikte görünüyordu.
+Sabit genişlik vererek hizaladık.
+*/
+//Angular her bileşenin CSS'ini o bileşene hapsediyor
+:host ::ng-deep .filter-select {
+  width: 220px;
+}
+
 
 /* auto-fill + minmax: kart en az 320px, kalan boşluk paylaştırılır.
    Kaç sütun olacağına tarayıcı karar veriyor, biz yazmıyoruz. */
@@ -117,4 +145,180 @@
   &:hover {
     background: var(--p-surface-700);
   }
+}
+
+/* Paginator ile kart ızgarası arasını açıyoruz.
+   Varsayılanda hiç boşluk yok, ızgaraya yapışık duruyor. */
+:host ::ng-deep .p-paginator {
+  margin-top: auto;
+  background: transparent;
+}
+
+
+
+/* ---- Büyük kart (p-dialog) ---- */
+
+/* PrimeNG'nin hazır iç boşluğu başlık varmış gibi hesaplanıyor.
+   Başlığı kapattığımız için kendi boşluğumuzu veriyoruz. */
+:host ::ng-deep .p-dialog-content {
+  padding: 1.5rem;
+}
+
+.detail-loading {
+  color: var(--p-text-muted-color);
+  margin: 0;
+}
+
+/* Kategori etiketi ve rozet aynı satırda, iki uca yaslı —
+   küçük karttaki .card-top ile aynı düzen. */
+.detail-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.detail-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 0 0 1rem 0;
+}
+
+.detail-table {
+  width: 100%;
+  font-size: 0.9375rem;
+  margin-bottom: 0.5rem;
+
+  td {
+    padding: 0.2rem 0;
+  }
+}
+
+/* Etiket sütununa sabit genişlik: değerler aynı hizada başlasın. */
+.detail-label {
+  color: var(--p-text-muted-color);
+  width: 110px;
+}
+
+/* Kutunun içindeki ilk etiketin üst boşluğu fazla geliyordu */
+.detail-section-label {
+  color: var(--p-text-color);
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin: 2.5rem 0 0.75rem 0;
+}
+
+/* pre-line: açıklamadaki satır sonları korunur.
+   Bu olmadan HTML tüm metni tek paragrafa sıkıştırır. */
+.detail-description {
+  font-size: 1.1rem;
+  line-height: 1.7;
+  white-space: pre-line;
+  margin: 0;
+}
+
+.instructor-box {
+  /* Pencere zemininden bir ton açık + çerçeve.
+    Tek başına arka plan rengi yetmiyordu, ikisi bir arada
+    kutuyu zeminden ayırıyor. */
+  background: var(--p-surface-800);
+  border: 1px solid var(--p-surface-600);
+  border-radius: 8px;
+  padding: 1rem 1.25rem;
+  margin-top: 1.75rem;
+
+  /* Kutunun içindeki ilk etiketin üst boşluğu fazla geliyordu */
+  .detail-section-label {
+    margin-top: 0;
+    margin-bottom: 0.75rem;
+  }
+}
+
+.instructor-name {
+  font-size: 1rem;
+  font-weight: 500;
+  margin: 0 0 0.125rem 0;
+}
+
+.instructor-line {
+  font-size: 0.9375rem;
+  color: var(--p-text-muted-color);
+  margin: 0 0 0.125rem 0;
+}
+
+/* Düğmeler sağa yaslı, yan yana. */
+.detail-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 1.5rem;
+}
+
+/* .details-button genişliği 100% — kartta öyle olması gerekiyordu.
+   Burada iki düğme yan yana duracağı için sıfırlıyoruz. */
+.detail-actions .details-button {
+  width: auto;
+  margin-top: 0;
+  padding: 0.5rem 1.25rem;
+}
+
+/* Asıl eylem (Apply / Edit) daha belirgin dursun. */
+.detail-primary {
+  background: var(--p-surface-700);
+  border-color: var(--p-surface-500);
+}
+
+
+
+
+/* ---- Yükleniyor ve özel durumlar ---- */
+
+/* İskelet kartı gerçek kartla aynı zemin ve ölçülerde.
+   Amaç: veri gelince sayfanın yerinden oynamaması. */
+.skeleton-card {
+  background: var(--p-surface-800);
+  border: 1px solid var(--p-surface-700);
+  border-radius: 8px;
+  padding: 1.25rem;
+
+  /* İskelet parçaları alt alta, aralarında eşit boşluk */
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+/* Hata ve "sonuç yok" mesajlarının ortak kutusu.
+   İkisi de aynı yeri kaplıyor, aynı görünüyor — fark sadece metin
+   ve hata durumundaki düğme. */
+.state-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 4rem 1.5rem;
+  background: var(--p-surface-800);
+  border: 1px solid var(--p-surface-700);
+  border-radius: 8px;
+}
+
+.state-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin: 0 0 0.5rem 0;
+}
+
+.state-text {
+  color: var(--p-text-muted-color);
+  font-size: 0.9375rem;
+  margin: 0;
+}
+
+/* .details-button genişliği 100% — burada tek düğme ortada
+   duracağı için sıfırlıyoruz. Büyük karttaki ile aynı sebep. */
+.state-button {
+  width: auto;
+  margin-top: 1.5rem;
+  padding: 0.5rem 1.5rem;
 }
