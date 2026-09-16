@@ -203,6 +203,14 @@ public class TrainingsController : ControllerBase
             Location = dto.Location,
             Category = dto.Category,
             Capacity = dto.Capacity,
+
+            // Dış eğitmen bilgileri. Boş gelirse null kalır ve eğitim
+            // iç eğitmenli sayılır — okuma tarafındaki kontroller
+            // ExternalInstructorName'e bakarak karar veriyor.
+            ExternalInstructorName = dto.ExternalInstructorName,
+            ExternalInstructorEmail = dto.ExternalInstructorEmail,
+            ExternalInstructorOrganization = dto.ExternalInstructorOrganization,
+
             Status = TrainingStatus.OpenForApplication
         };
 
@@ -249,6 +257,14 @@ public class TrainingsController : ControllerBase
         training.Location = dto.Location;
         training.Category = dto.Category;
         training.Capacity = dto.Capacity;
+
+        // Dış eğitmen bilgileri güncellemede de değişebilir.
+        // Formda alanlar boşaltılırsa null yazılır ve eğitim
+        // iç eğitmenliye döner — istenen davranış bu.
+        training.ExternalInstructorName = dto.ExternalInstructorName;
+        training.ExternalInstructorEmail = dto.ExternalInstructorEmail;
+        training.ExternalInstructorOrganization = dto.ExternalInstructorOrganization;
+
         training.Status = parsedStatus;
 
         await _context.SaveChangesAsync();

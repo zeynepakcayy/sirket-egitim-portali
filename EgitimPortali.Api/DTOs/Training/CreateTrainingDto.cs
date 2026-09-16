@@ -37,4 +37,24 @@ public class CreateTrainingDto
 
     [Range(1, 1000)]
     public int Capacity { get; set; }
+
+
+    
+    /*
+    Dış eğitmen bilgileri. Üçü de isteğe bağlı (nullable).
+    Kural: ExternalInstructorName doluysa eğitim "dış eğitmenli" sayılır —
+    okuma tarafındaki tüm kontroller bu alana bakıyor.
+    Boş bırakılırsa eğitmen olarak eğitimi açan kişi gösterilir.
+    */
+    [StringLength(200)]
+    public string? ExternalInstructorName { get; set; }
+
+    // EmailAddress: girilen metin e-posta biçiminde değilse istek 400 döner.
+    // Alan boş bırakılabilir, ama doluysa geçerli olmak zorunda.
+    [EmailAddress]
+    [StringLength(200)]
+    public string? ExternalInstructorEmail { get; set; }
+
+    [StringLength(200)]
+    public string? ExternalInstructorOrganization { get; set; }
 }

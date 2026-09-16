@@ -40,4 +40,22 @@ public class UpdateTrainingDto
 
     [Required]
     public string Status { get; set; } = string.Empty;
+
+
+
+    
+    /*
+    Dış eğitmen bilgileri. Create'deki kuralın aynısı.
+    Düzenlemede de değiştirilebilmeleri gerekiyor — eğitmen sonradan
+    değişebilir ya da yanlış girilmiş bir e-posta düzeltilebilir.
+    */
+    [StringLength(200)]
+    public string? ExternalInstructorName { get; set; }
+
+    [EmailAddress]
+    [StringLength(200)]
+    public string? ExternalInstructorEmail { get; set; }
+
+    [StringLength(200)]
+    public string? ExternalInstructorOrganization { get; set; }
 }

@@ -71,7 +71,8 @@ namespace EgitimPortali.Api.Controllers
                 Token = token,
                 Email = user.Email ?? string.Empty,
                 FullName = user.FullName,
-                Role = role
+                Role = role,
+                Department = user.Department
             };
 
             return Ok(response);
