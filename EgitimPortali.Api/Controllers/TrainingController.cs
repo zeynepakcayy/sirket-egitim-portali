@@ -32,6 +32,63 @@ public class TrainingsController : ControllerBase
         _context = context;
     }
 
+
+
+    /*
+    Npgsql, "timestamp with time zone" sütunlarına sadece Kind=Utc
+    tarihleri yazabiliyor. İstemciden gelen tarih "+03:00" gibi bir
+    saat dilimi taşıdığında .NET onu Kind=Local olarak okuyor ve
+    kayıt patlıyor.
+
+    Bu metot her durumu UTC'ye çeviriyor:
+      Utc         -> dokunmuyor
+      Local       -> saat dilimi farkını düşüp UTC yapıyor
+      Unspecified -> sunucunun yerel saati sayıp çeviriyor
+    */
+    private static DateTime ToUtc(DateTime value)
+    {
+        return value.Kind switch
+        {
+            DateTimeKind.Utc => value,
+            DateTimeKind.Local => value.ToUniversalTime(),
+            _ => DateTime.SpecifyKind(value, DateTimeKind.Local).ToUniversalTime()
+        };
+    }
+
+
+
+
+    /*
+    Eğitimin görünen durumu. Veritabanında sadece iki değer tutuluyor:
+    OpenForApplication ya da Cancelled.
+
+    Ongoing ve Completed tarihten hesaplanıyor — ayrı tutulsaydı
+    eğitim bittiğinde birinin gidip durumu güncellemesi gerekirdi,
+    unutulursa kayıt gerçekle çelişirdi. Kapasite rozetinde de
+    aynı yolu izlemiştik.
+
+    İptal her şeyin önünde: iptal edilmiş bir eğitim tarihi geçse de
+    "tamamlandı" sayılmaz.
+    */
+    private static string GetDisplayStatus(TrainingStatus status, DateTime startDate, DateTime endDate)
+    {
+        if (status == TrainingStatus.Cancelled)
+            return TrainingStatus.Cancelled.ToString();
+
+        var now = DateTime.UtcNow;
+
+        if (now > endDate)
+            return TrainingStatus.Completed.ToString();
+
+        if (now >= startDate)
+            return TrainingStatus.Ongoing.ToString();
+
+        return TrainingStatus.OpenForApplication.ToString();
+    }
+
+
+
+
     // GET /api/trainings?page=1&pageSize=10
     // Eğitimleri sayfa sayfa döndürür; her istekte veritabanından sadece istenen sayfa çekilir.
     // Neden: Tüm eğitimleri tek seferde çekmek, kayıt sayısı arttıkça veritabanını ve ağı yorar.
@@ -94,28 +151,39 @@ public class TrainingsController : ControllerBase
         var items = await query
 
 
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .Select(t => new TrainingListDto
-            {
-                Id = t.Id,
-                Title = t.Title,
-                // Dış eğitmen adı doluysa onu, değilse eğitimi açan kişinin adını yazıyoruz.
-                // Karar burada veriliyor ki frontend her kartta aynı kontrolü tekrar yapmasın.
-                InstructorName = !string.IsNullOrEmpty(t.ExternalInstructorName)
-                    ? t.ExternalInstructorName
-                    : (t.Instructor != null ? t.Instructor.FullName : string.Empty),
+        .Skip((page - 1) * pageSize)
+        .Take(pageSize)
+        .Select(t => new TrainingListDto
+        {
+            Id = t.Id,
+            Title = t.Title,
+            // Dış eğitmen adı doluysa onu, değilse eğitimi açan kişinin adını yazıyoruz.
+            // Karar burada veriliyor ki frontend her kartta aynı kontrolü tekrar yapmasın.
+            InstructorName = !string.IsNullOrEmpty(t.ExternalInstructorName)
+                ? t.ExternalInstructorName
+                : (t.Instructor != null ? t.Instructor.FullName : string.Empty),
 
-                StartDate = t.StartDate,
-                EndDate = t.EndDate,
-                Location = t.Location,
-                Category = t.Category,
-                Capacity = t.Capacity,
-                // Sayımı artık veritabanı yapıyor, başvurular hafızaya çekilmiyor
-                EnrolledCount = t.Applications.Count(a => a.ApprovalStatus == ApprovalStatus.Approved),
-                Status = t.Status.ToString()
-            })
-            .ToListAsync();
+            StartDate = t.StartDate,
+            EndDate = t.EndDate,
+            Location = t.Location,
+            Category = t.Category,
+            Capacity = t.Capacity,
+            // Sayımı artık veritabanı yapıyor, başvurular hafızaya çekilmiyor
+            EnrolledCount = t.Applications.Count(a => a.ApprovalStatus == ApprovalStatus.Approved),
+            // Ham durum. Görünen durum aşağıda hesaplanıyor —
+            // bu Select veritabanında çalıştığı için kendi
+            // metodumuzu buraya koyamıyoruz.
+            Status = t.Status.ToString(),
+            StatusRaw = t.Status
+        })
+        .ToListAsync();
+
+            
+        // Veri artık hafızada; görünen durumu burada hesaplıyoruz.
+        foreach (var item in items)
+        {
+            item.Status = GetDisplayStatus(item.StatusRaw, item.StartDate, item.EndDate);
+        }
 
         var result = new PagedResult<TrainingListDto>
         {
@@ -172,7 +240,7 @@ public class TrainingsController : ControllerBase
             Category = training.Category,
             Capacity = training.Capacity,
             EnrolledCount = training.Applications.Count(a => a.ApprovalStatus == ApprovalStatus.Approved),
-            Status = training.Status.ToString(),
+            Status = GetDisplayStatus(training.Status, training.StartDate, training.EndDate),
 
             //eğitimi açan kili isteği gönderen kişiyle aynı mı
             IsOwner = training.InstructorUserId == currentUserId
@@ -192,14 +260,27 @@ public class TrainingsController : ControllerBase
         if (instructorIdText == null || !Guid.TryParse(instructorIdText, out var instructorId))
             return Unauthorized();
 
+    
+        // Dış eğitmenli eğitim açmak sadece HRManager'a ait.
+        // Instructor rolündeki kişi yalnızca kendi adına eğitim açabilir.
+        // Frontend'de kutuyu gizlemek koruma sağlamaz — istek Swagger'dan
+        // ya da başka bir araçtan elle gönderilebilir.
+        var isExternalRequest =
+            !string.IsNullOrWhiteSpace(dto.ExternalInstructorName) ||
+            !string.IsNullOrWhiteSpace(dto.ExternalInstructorEmail) ||
+            !string.IsNullOrWhiteSpace(dto.ExternalInstructorOrganization);
+
+        if (isExternalRequest && !User.IsInRole("HRManager"))
+            return Forbid();
+
         var training = new Training
         {
             Id = Guid.NewGuid(),
             InstructorUserId = instructorId,
             Title = dto.Title,
             Description = dto.Description,
-            StartDate = dto.StartDate,
-            EndDate = dto.EndDate,
+            StartDate = ToUtc(dto.StartDate),
+            EndDate = ToUtc(dto.EndDate),
             Location = dto.Location,
             Category = dto.Category,
             Capacity = dto.Capacity,
@@ -242,6 +323,17 @@ public class TrainingsController : ControllerBase
         if (training.InstructorUserId != currentUserId)
             return Forbid();
 
+    
+        // Create'deki kuralın aynısı: dış eğitmen bilgisi girmek
+        // sadece HRManager'a ait.
+        var isExternalRequest =
+            !string.IsNullOrWhiteSpace(dto.ExternalInstructorName) ||
+            !string.IsNullOrWhiteSpace(dto.ExternalInstructorEmail) ||
+            !string.IsNullOrWhiteSpace(dto.ExternalInstructorOrganization);
+
+        if (isExternalRequest && !User.IsInRole("HRManager"))
+            return Forbid();
+
 
 
         // İstemciden gelen "Completed" gibi bir metni enum değerine çeviriyoruz.
@@ -252,8 +344,8 @@ public class TrainingsController : ControllerBase
 
         training.Title = dto.Title;
         training.Description = dto.Description;
-        training.StartDate = dto.StartDate;
-        training.EndDate = dto.EndDate;
+        training.StartDate = ToUtc(dto.StartDate);
+        training.EndDate = ToUtc(dto.EndDate);
         training.Location = dto.Location;
         training.Category = dto.Category;
         training.Capacity = dto.Capacity;
