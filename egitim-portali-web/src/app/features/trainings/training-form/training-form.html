@@ -1,0 +1,224 @@
+<div class="form-page">
+  <p class="breadcrumb">Trainings</p>
+  <h1 class="page-title">Create training</h1>
+
+  <div class="form-body">
+
+    <div class="field">
+      <label for="title">Title</label>
+      <input pInputText id="title" type="text" autocomplete="off"
+        [ngModel]="title()"
+        (ngModelChange)="title.set($event)"
+        [class.input-error]="errors()['title']"
+        placeholder="Angular Fundamentals" />
+      @if (errors()['title']) {
+        <span class="field-error">{{ errors()['title'] }}</span>
+      }
+    </div>
+
+    <!-- Kategori ve kapasite kısa alanlar, tek satırda duruyorlar -->
+    <div class="field-row">
+      <div class="field">
+        <label for="category">Category</label>
+        <p-select inputId="category"
+          [options]="categoryOptions"
+          [ngModel]="category()"
+          (onChange)="category.set($event.value)"
+          optionLabel="label"
+          optionValue="value"
+          [class.input-error]="errors()['category']"
+          placeholder="Select a category" />
+        @if (errors()['category']) {
+          <span class="field-error">{{ errors()['category'] }}</span>
+        }
+      </div>
+
+      <div class="field">
+        <label for="capacity">Capacity</label>
+        <input pInputText id="capacity" type="number" min="1"
+          [ngModel]="capacity()"
+          (ngModelChange)="capacity.set($event)"
+          [class.input-error]="errors()['capacity']"
+          placeholder="20" />
+        @if (errors()['capacity']) {
+          <span class="field-error">{{ errors()['capacity'] }}</span>
+        }
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="location">Location</label>
+      <input pInputText id="location" type="text" autocomplete="off"
+        [ngModel]="location()"
+        (ngModelChange)="location.set($event)"
+        [class.input-error]="errors()['location']"
+        placeholder="Ankara Merkez Ofis" />
+      @if (errors()['location']) {
+        <span class="field-error">{{ errors()['location'] }}</span>
+      }
+    </div>
+
+    <!-- Tarih takvimden seçiliyor, saat elle yazılıyor.
+         [readonlyInput] elle yazmayı engelliyor — böylece
+         (onSelect) olayı her seçimde güvenilir biçimde çalışıyor. -->
+    <div class="field-row date-row">
+      <div class="field">
+        <label for="startDate">Start date</label>
+        <p-datepicker inputId="startDate"
+          [ngModel]="startDate()"
+          (onSelect)="onStartDateSelect($event)"
+          dateFormat="dd/mm/yy"
+          [minDate]="today"
+          [readonlyInput]="true"
+          [showIcon]="true"
+          [class.input-error]="errors()['startDate']"
+          placeholder="Select date" />
+        @if (errors()['startDate']) {
+          <span class="field-error">{{ errors()['startDate'] }}</span>
+        }
+      </div>
+
+      <div class="field field-time">
+        <label for="startTime">Time</label>
+        <input pInputText id="startTime" type="text" autocomplete="off"
+          [ngModel]="startTime()"
+          (ngModelChange)="startTime.set($event)"
+          (blur)="onStartTimeBlur(startTime())"
+          [class.input-error]="startTimeError() || errors()['startTime']"
+          placeholder="09:00" />
+        <!-- İki hata kaynağı var: yazım hatası (blur anında) ve
+              boş bırakma (kaydederken). İkisi birden görünürse
+              kutu iki satır olur, düzen bozulur. -->
+        @if (startTimeError()) {
+          <span class="field-error">{{ startTimeError() }}</span>
+        } @else if (errors()['startTime']) {
+          <span class="field-error">{{ errors()['startTime'] }}</span>
+        }
+      </div>
+
+      <div class="field">
+        <label for="endDate">End date</label>
+        <p-datepicker inputId="endDate"
+          [ngModel]="endDate()"
+          (onSelect)="onEndDateSelect($event)"
+          dateFormat="dd/mm/yy"
+          [minDate]="endMinDate()"
+          [readonlyInput]="true"
+          [showIcon]="true"
+          [class.input-error]="errors()['endDate']"
+          placeholder="Select date" />
+        @if (errors()['endDate']) {
+          <span class="field-error">{{ errors()['endDate'] }}</span>
+        }
+      </div>
+
+      <div class="field field-time">
+        <label for="endTime">Time</label>
+        <input pInputText id="endTime" type="text" autocomplete="off"
+          [ngModel]="endTime()"
+          (ngModelChange)="endTime.set($event)"
+          (blur)="onEndTimeBlur(endTime())"
+          [class.input-error]="endTimeError() || errors()['endTime']"
+          placeholder="17:00" />
+        @if (endTimeError()) {
+          <span class="field-error">{{ endTimeError() }}</span>
+        } @else if (errors()['endTime']) {
+          <span class="field-error">{{ errors()['endTime'] }}</span>
+        }
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="description">Description</label>
+      <textarea pTextarea id="description" rows="4"
+        [ngModel]="description()"
+        (ngModelChange)="description.set($event)"
+        [class.input-error]="errors()['description']"
+        placeholder="What the training covers, what to bring."></textarea>
+      @if (errors()['description']) {
+        <span class="field-error">{{ errors()['description'] }}</span>
+      }
+    </div>
+
+    <!-- Dış eğitmen bölümü.
+         Kutu kapalıyken alanlar kullanıcının kendi bilgileriyle
+         dolu ve kilitli görünüyor. Bu sadece gösterim —
+         backend'e null gidecek, çünkü ExternalInstructorName dolu
+         olursa sistem eğitimi "dış eğitmenli" sayar. -->
+    @if (canUseExternal()){
+      <div class="external-section">
+        <div class="checkbox-row">
+          <p-checkbox inputId="isExternal" [binary]="true"
+            [ngModel]="isExternal()"
+            (onChange)="isExternal.set($event.checked)" />
+          <label for="isExternal">This training is given by an external instructor</label>
+        </div>
+
+        <div class="external-fields">
+          <div class="field">
+            <label for="externalName">Instructor name</label>
+            @if (isExternal()) {
+              <input pInputText id="externalName" type="text" autocomplete="off"
+                [ngModel]="externalName()"
+                (ngModelChange)="externalName.set($event)"
+                [class.input-error]="errors()['externalName']"
+                placeholder="Mehmet Demir" />
+              @if (errors()['externalName']) {
+                <span class="field-error">{{ errors()['externalName'] }}</span>
+              }
+            } @else {
+              <input pInputText type="text" disabled
+                [value]="currentUser()?.fullName ?? ''" />
+            }
+          </div>
+
+          <div class="field-row">
+            <div class="field">
+              <label for="externalEmail">Email</label>
+              @if (isExternal()) {
+                <input pInputText id="externalEmail" type="text" autocomplete="off"
+                  [ngModel]="externalEmail()"
+                  (ngModelChange)="externalEmail.set($event)"
+                  [class.input-error]="errors()['externalEmail']"
+                  placeholder="mehmet@akademi.com" />
+                @if (errors()['externalEmail']) {
+                  <span class="field-error">{{ errors()['externalEmail'] }}</span>
+                }
+              } @else {
+                <input pInputText type="text" disabled
+                  [value]="currentUser()?.email ?? ''" />
+              }
+            </div>
+
+            <div class="field">
+              <label for="externalOrganization">Organization</label>
+              @if (isExternal()) {
+                <input pInputText id="externalOrganization" type="text" autocomplete="off"
+                  [ngModel]="externalOrganization()"
+                  (ngModelChange)="externalOrganization.set($event)"
+                  [class.input-error]="errors()['externalOrganization']"
+                  placeholder="Güvenlik Akademi" />
+                @if (errors()['externalOrganization']) {
+                  <span class="field-error">{{ errors()['externalOrganization'] }}</span>
+                }
+              } @else {
+                <input pInputText type="text" disabled
+                  [value]="currentUser()?.department ?? ''" />
+              }
+            </div>
+          </div>
+        </div>
+      </div>
+    }
+
+    <div class="form-actions">
+      <button class="form-button" (click)="clearForm()">Clear</button>
+      <button class="form-button form-button-primary"
+        [disabled]="saving()"
+        (click)="submit()">
+        {{ saving() ? 'Saving...' : 'Create training' }}
+      </button>
+    </div>
+
+  </div>
+</div>

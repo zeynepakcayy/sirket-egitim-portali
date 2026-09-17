@@ -3,8 +3,10 @@ import { RouterOutlet } from '@angular/router';
 
 import { Button } from 'primeng/button';
 
+import { Toast } from 'primeng/toast';
+
 @Component({
-  imports: [RouterOutlet],
+  imports: [RouterOutlet, Toast],
   selector: 'app-root',
   styleUrl: './app.scss',
   templateUrl: './app.html',

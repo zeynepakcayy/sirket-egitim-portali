@@ -1,0 +1,145 @@
+.form-page {
+  padding: 1.5rem;
+}
+
+.breadcrumb {
+  color: var(--p-text-muted-color);
+  font-size: 0.875rem;
+  margin: 0;
+}
+
+.page-title {
+  font-size: 1.875rem;
+  font-weight: 700;
+  margin: 0.25rem 0 1.5rem 0;
+}
+
+/* Form dar tutuluyor. Geniş ekranda satır boyu uzayınca
+   etiketle kutu arasındaki bağ gözden kaçıyor. */
+.form-body {
+  max-width: 720px;
+}
+
+/* Her alan: etiket üstte, kutu altta */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  margin-bottom: 1.75rem;
+  /* flex satırında kutular eşit paylaşsın */
+  flex: 1;
+  /* Bu olmadan uzun içerik sütunu taşırır */
+  min-width: 0;
+}
+
+/* Etiketler belirgin: hangi kutunun ne olduğu ilk bakışta okunsun. */
+.field label {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--p-text-color);
+}
+
+/* Yan yana duran alanlar */
+.field-row {
+  display: flex;
+  gap: 1.25rem;
+}
+
+/* Saat kutuları tarih kutularından dar olsun */
+.date-row .field-time {
+  flex: 0 0 110px;
+}
+
+/* Metin kutuları ve açıklama alanı.
+   PrimeNG'nin varsayılan rengi koyu temada zayıf kalıyordu;
+   kartlarla aynı zemin ve çerçeveyi veriyoruz. */
+:host ::ng-deep .p-inputtext,
+:host ::ng-deep .p-select,
+:host ::ng-deep .p-datepicker-input {
+  width: 100%;
+  background: var(--p-surface-900);
+  border: 1px solid var(--p-surface-600);
+  color: var(--p-text-color);
+}
+
+/* Kilitli alanlar (dış eğitmen kapalıyken).
+   Zemin soluk kalıyor — yazılamayacağı belli olsun diye.
+   Ama yazı belirgin: bu bilgi okunmak için orada, gri bir
+   yer tutucu değil. */
+:host ::ng-deep .p-inputtext:disabled {
+  background: var(--p-surface-800);
+  color: var(--p-text-color);
+  font-weight: 600;
+  opacity: 1;
+}
+
+/* Takvim düğmesi kutuyla aynı çerçevede kalsın */
+:host ::ng-deep .p-datepicker {
+  width: 100%;
+}
+
+.input-error {
+  border-color: #b04444 !important;
+}
+
+.field-error {
+  font-size: 0.8125rem;
+  color: #e08a8a;
+}
+
+/* Dış eğitmen bölümü çizgiyle ayrılıyor */
+.external-section {
+  border-top: 1px solid var(--p-surface-700);
+  padding-top: 1.25rem;
+  margin-top: 0.5rem;
+}
+
+.checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.checkbox-row label {
+  font-size: 0.9375rem;
+  cursor: pointer;
+}
+
+/* İçerlek duruyor: onay kutusuna bağlı olduğu belli olsun */
+.external-fields {
+  padding-left: 1.75rem;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  border-top: 1px solid var(--p-surface-700);
+  padding-top: 1.25rem;
+  margin-top: 1rem;
+}
+
+/* Katalogdaki .details-button ile aynı üslup */
+.form-button {
+  padding: 0.5rem 1.25rem;
+  background: transparent;
+  border: 1px solid var(--p-surface-600);
+  border-radius: 6px;
+  color: var(--p-text-color);
+  cursor: pointer;
+
+  &:hover {
+    background: var(--p-surface-700);
+  }
+}
+
+/* Asıl eylem belirgin dursun. Katalogdaki .detail-primary ile aynı. */
+.form-button-primary {
+  background: var(--p-surface-700);
+  border-color: var(--p-surface-500);
+
+  &:hover {
+    background: var(--p-surface-600);
+  }
+}

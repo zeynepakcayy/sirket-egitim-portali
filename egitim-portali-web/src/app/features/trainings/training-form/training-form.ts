@@ -1,0 +1,363 @@
+import { Component, inject, signal, computed } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { DatePickerModule } from 'primeng/datepicker';
+import { SelectModule } from 'primeng/select';
+import { InputTextModule } from 'primeng/inputtext';
+import { TextareaModule } from 'primeng/textarea';
+import { CheckboxModule } from 'primeng/checkbox';
+import { AuthService } from '../../../core/services/auth.service';
+import { MessageService } from 'primeng/api';
+import { Router } from '@angular/router';
+import { TrainingService } from '../../../core/services/training.service';
+import { TrainingRequest } from '../../../core/models/training.model';
+
+@Component({
+  selector: 'app-training-form',
+  imports: [
+    FormsModule,
+    DatePickerModule,
+    SelectModule,
+    InputTextModule,
+    TextareaModule,
+    CheckboxModule
+  ],
+  templateUrl: './training-form.html',
+  styleUrl: './training-form.scss'
+})
+export class TrainingForm {
+  private authService = inject(AuthService);
+  private messageService = inject(MessageService);
+
+
+  private trainingService = inject(TrainingService);
+  private router = inject(Router);
+
+  // Kaydetme sürerken düğmeyi kilitliyoruz — çift tıklamada
+  // iki eğitim oluşmasın.
+  saving = signal(false);
+
+
+  // Giriş yapmış kullanıcı. Dış eğitmen kutusu kapalıyken
+  // onun bilgileri alanlarda gösteriliyor.
+  currentUser = this.authService.currentUser;
+
+
+  // Dış eğitmen seçeneği sadece HRManager'a açık.
+  // Backend de aynı kuralı uyguluyor — burası sadece
+  // işe yaramayacak bir kutuyu göstermemek için.
+  canUseExternal = computed(() => this.currentUser()?.role === 'HRManager');
+
+
+  // Takvimde geçmiş günler seçilemesin diye alt sınır.
+  // Gerekli çünkü katalog sadece StartDate > now olanları listeliyor —
+  // geçmiş tarihli bir eğitim kaydedilir ama hiçbir yerde görünmez.
+  today = new Date();
+
+  // --- Form alanları ---
+  title = signal('');
+  category = signal<string | null>(null);
+  capacity = signal<number | null>(null);
+  location = signal('');
+  description = signal('');
+
+  // Tarihler Date nesnesi, saatler metin. Backend ikisini
+  // birleştirilmiş halde bekliyor — gönderirken birleştireceğiz.
+  startDate = signal<Date | null>(null);
+  startTime = signal('');
+  endDate = signal<Date | null>(null);
+  endTime = signal('');
+
+  // --- Dış eğitmen ---
+  isExternal = signal(false);
+  externalName = signal('');
+  externalEmail = signal('');
+  externalOrganization = signal('');
+
+  // Kategori listesi katalogdakiyle aynı. Sabit çünkü
+  // veritabanında Category düz metin olarak tutuluyor, enum değil.
+  categoryOptions = [
+    { label: 'Technical', value: 'Technical' },
+    { label: 'Safety', value: 'Safety' },
+    { label: 'Compliance', value: 'Compliance' },
+    { label: 'Soft Skills', value: 'Soft Skills' },
+    { label: 'Management', value: 'Management' }
+  ];
+
+  // Bitiş takviminin alt sınırı. Başlangıç seçilmemişse bugün,
+  // seçilmişse o gün. Takvimde daha erken günler tıklanamaz hale geliyor.
+  endMinDate = signal<Date>(new Date());
+
+  // Başlangıç tarihi takvimden seçilince bitiş tarihini de
+  // aynı güne alıyoruz. Çoğu eğitim tek günlük; kullanıcı
+  // farklıysa bitiş tarihini kendisi değiştirebiliyor.
+  onStartDateSelect(date: Date): void {
+    this.startDate.set(date);
+    this.endMinDate.set(date);
+
+    // Seçili bitiş tarihi artık başlangıçtan önce kalıyorsa
+    // onu da ileri alıyoruz. Yoksa ekranda geçersiz bir aralık kalır.
+    const currentEnd = this.endDate();
+    if (currentEnd === null || currentEnd < date) {
+      this.endDate.set(date);
+    }
+  }
+
+  onEndDateSelect(date: Date): void {
+    this.endDate.set(date);
+  }
+
+
+  submit(): void {
+    // Doğrulama geçmezse istek hiç gönderilmiyor.
+    if (!this.validate()) {
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Please fix the errors in the form.',
+        life: 3000
+      });
+      return;
+    }
+
+    this.saving.set(true);
+
+    const request: TrainingRequest = {
+      title: this.title().trim(),
+      description: this.description().trim(),
+      // toLocalIso: tarayıcının saat diliminde gönderiyoruz.
+      startDate: this.toLocalIso(this.buildDateTime(this.startDate(), this.startTime())!),
+      endDate: this.toLocalIso(this.buildDateTime(this.endDate(), this.endTime())!),
+      location: this.location().trim(),
+      category: this.category()!,
+      capacity: this.capacity()!,
+      // Dış eğitmen seçili değilse null gönderiyoruz.
+      // Ekranda kendi bilgilerimiz görünüyor ama onları göndermiyoruz:
+      // ExternalInstructorName dolu olursa backend eğitimi
+      // "dış eğitmenli" sayar ve kayıt yanlış olur.
+      externalInstructorName: this.isExternal() ? this.externalName().trim() : null,
+      externalInstructorEmail: this.isExternal() ? this.externalEmail().trim() : null,
+      externalInstructorOrganization: this.isExternal() ? this.externalOrganization().trim() : null
+    };
+
+    this.trainingService.createTraining(request).subscribe({
+      next: () => {
+        this.saving.set(false);
+        this.messageService.add({
+          severity: 'success',
+          summary: 'Training created.',
+          life: 3000
+        });
+        this.router.navigate(['/trainings']);
+      },
+      error: (err) => {
+        console.error('Create error:', err);
+        this.saving.set(false);
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Could not create training.',
+          life: 4000
+        });
+      }
+    });
+  }
+
+  /*
+  Date nesnesini "2026-10-20T09:30:00+03:00" biçimine çevirir.
+
+  Hazır toISOString() kullanmıyoruz çünkü o saati UTC'ye çevirip
+  yazıyor — ekranda 09:30 seçilmişken sunucuya 06:30 giderdi.
+
+  Sonuna saat dilimi farkını ekliyoruz. Bu şart: veritabanındaki
+  tarih sütunları "timestamp with time zone" tipinde ve Npgsql
+  saat dilimi bilgisi olmayan tarihleri kabul etmiyor.
+  */
+  private toLocalIso(date: Date): string {
+    const pad = (n: number) => String(n).padStart(2, '0');
+
+    // getTimezoneOffset dakika cinsinden ve ters işaretli:
+    // Türkiye (UTC+3) için -180 döndürüyor.
+    const offsetMinutes = -date.getTimezoneOffset();
+    const sign = offsetMinutes >= 0 ? '+' : '-';
+    const absMinutes = Math.abs(offsetMinutes);
+    const offset = `${sign}${pad(Math.floor(absMinutes / 60))}:${pad(absMinutes % 60)}`;
+
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
+      + `T${pad(date.getHours())}:${pad(date.getMinutes())}:00${offset}`;
+  }
+
+
+  /*
+  Saat kutusundan çıkınca çalışır. Yazılanı düzeltir:
+    9      -> 09:00
+    9.30   -> 09:30
+    9:30   -> 09:30
+    930    -> 09:30
+    0930   -> 09:30
+  Geçersizse kutuyu boşaltır; alanın kırmızı görünmesini
+  doğrulama adımında ekleyeceğiz.
+  */
+  normalizeTime(raw: string): string {
+    // Rakam dışındaki her şeyi at. Nokta, iki nokta, boşluk —
+    // hepsi ayraç sayılıyor, hangisini kullandığı önemli değil.
+    const digits = raw.replace(/\D/g, '');
+    if (digits.length === 0) return '';
+
+    let hours: number;
+    let minutes: number;
+
+    if (digits.length <= 2) {
+      // Sadece saat yazılmış: "9" veya "09"
+      hours = parseInt(digits, 10);
+      minutes = 0;
+    } else if (digits.length === 3) {
+      // "930" -> 9 saat 30 dakika
+      hours = parseInt(digits.substring(0, 1), 10);
+      minutes = parseInt(digits.substring(1), 10);
+    } else {
+      // "0930" veya daha uzun -> ilk iki hane saat, sonraki iki hane dakika
+      hours = parseInt(digits.substring(0, 2), 10);
+      minutes = parseInt(digits.substring(2, 4), 10);
+    }
+
+    // Geçersiz saat ya da dakika: boş döndür, kullanıcı tekrar yazsın.
+    if (hours > 23 || minutes > 59) return '';
+
+    // padStart: tek haneli sayının başına 0 koyuyor. 9 -> "09"
+    return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+  }
+
+    // Saat kutularının hata durumu. Boş metin = hata yok.
+  startTimeError = signal('');
+  endTimeError = signal('');
+
+  onStartTimeBlur(raw: string): void {
+    // Kutu hiç doldurulmadıysa hata değil — zorunlu alan kontrolü
+    // kaydetme sırasında ayrıca yapılacak.
+    if (raw.trim() === '') {
+      this.startTime.set('');
+      this.startTimeError.set('');
+      return;
+    }
+
+    const normalized = this.normalizeTime(raw);
+    this.startTime.set(normalized);
+    this.startTimeError.set(normalized === '' ? 'Invalid time' : '');
+  }
+
+  onEndTimeBlur(raw: string): void {
+    if (raw.trim() === '') {
+      this.endTime.set('');
+      this.endTimeError.set('');
+      return;
+    }
+
+    const normalized = this.normalizeTime(raw);
+    this.endTime.set(normalized);
+    this.endTimeError.set(normalized === '' ? 'Invalid time' : '');
+  }
+
+  // Her alanın hata mesajı. Boş metin = hata yok.
+  // Alan adıyla eşleşen ayrı signal'lar tutuyoruz ki hata
+  // mesajı kendi kutusunun altında görünsün.
+  errors = signal<Record<string, string>>({});
+
+  // Formu kontrol eder. Hata varsa errors'ı doldurur ve false döner.
+  validate(): boolean {
+    const found: Record<string, string> = {};
+
+    if (this.title().trim() === '') {
+      found['title'] = 'Title is required.';
+    }
+    if (this.category() === null) {
+      found['category'] = 'Category is required.';
+    }
+    // Kapasite hem boş hem de 0/negatif olabilir — ikisi de geçersiz.
+    // Backend 1-1000 aralığını zorunlu tutuyor, aynı sınırı burada da uyguluyoruz.
+    const cap = this.capacity();
+    if (cap === null || cap < 1) {
+      found['capacity'] = 'Capacity must be at least 1.';
+    } else if (cap > 1000) {
+      found['capacity'] = 'Capacity cannot exceed 1000.';
+    }
+    if (this.location().trim() === '') {
+      found['location'] = 'Location is required.';
+    }
+    if (this.description().trim() === '') {
+      found['description'] = 'Description is required.';
+    }
+    if (this.startDate() === null) {
+      found['startDate'] = 'Start date is required.';
+    }
+    if (this.startTime() === '') {
+      found['startTime'] = 'Start time is required.';
+    }
+    if (this.endDate() === null) {
+      found['endDate'] = 'End date is required.';
+    }
+    if (this.endTime() === '') {
+      found['endTime'] = 'End time is required.';
+    }
+
+    // Dış eğitmen seçiliyse üç alan da zorunlu.
+    // Ad özellikle kritik: backend "ExternalInstructorName doluysa
+    // bu eğitim dış eğitmenlidir" kuralıyla çalışıyor.
+    if (this.isExternal()) {
+      if (this.externalName().trim() === '') {
+        found['externalName'] = 'Instructor name is required.';
+      }
+      if (this.externalEmail().trim() === '') {
+        found['externalEmail'] = 'Email is required.';
+      }
+      if (this.externalOrganization().trim() === '') {
+        found['externalOrganization'] = 'Organization is required.';
+      }
+    }
+
+    // Bitiş, başlangıçtan sonra olmalı. Takvim aynı günü seçmeye
+    // izin veriyor, o yüzden saatleri de hesaba katmamız gerek —
+    // 17:00 başlayıp 09:00 biten bir eğitim kaydedilebilirdi.
+    const start = this.buildDateTime(this.startDate(), this.startTime());
+    const end = this.buildDateTime(this.endDate(), this.endTime());
+    if (start !== null && end !== null && end <= start) {
+      found['endTime'] = 'End must be after start.';
+    }
+
+    this.errors.set(found);
+    return Object.keys(found).length === 0;
+  }
+
+  // Takvimden gelen tarihle elle yazılan saati birleştirir.
+  // Backend tek bir alan bekliyor: "2026-10-05T09:00:00"
+  buildDateTime(date: Date | null, time: string): Date | null {
+    if (date === null || time === '') return null;
+
+    const [hours, minutes] = time.split(':').map(Number);
+    // Yeni bir Date üretiyoruz; takvimden geleni değiştirmiyoruz.
+    // Date nesneleri değiştirilebilir olduğu için doğrudan
+    // setHours çağırsaydık takvimdeki seçim de kayardı.
+    const combined = new Date(date);
+    combined.setHours(hours, minutes, 0, 0);
+    return combined;
+  }
+
+  // Formu sıfırlar. Sayfadan çıkmaz, sadece yazılanları temizler.
+  clearForm(): void {
+    this.title.set('');
+    this.category.set(null);
+    this.capacity.set(null);
+    this.location.set('');
+    this.description.set('');
+    this.startDate.set(null);
+    this.startTime.set('');
+    this.endDate.set(null);
+    this.endTime.set('');
+    this.endMinDate.set(new Date());
+    this.isExternal.set(false);
+    this.externalName.set('');
+    this.externalEmail.set('');
+    this.externalOrganization.set('');
+    this.errors.set({});
+    this.startTimeError.set('');
+    this.endTimeError.set('');
+  }
+
+}

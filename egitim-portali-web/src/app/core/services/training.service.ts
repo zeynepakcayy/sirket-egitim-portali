@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { TrainingListItem, TrainingDetail, PagedResult } from '../models/training.model';
+import { TrainingListItem, TrainingDetail, PagedResult, TrainingRequest } from '../models/training.model';
 
 // Katalog listesini çekerken gönderilebilecek seçenekler.
 // Hepsi isteğe bağlı (?) — gönderilmeyeni backend varsayılanla dolduruyor.
@@ -43,4 +43,11 @@ export class TrainingService {
   getInstructorNames(): Observable<string[]> {
     return this.http.get<string[]>(`${this.baseUrl}/instructors`);
   }
+
+    // POST /api/trainings — yeni eğitim oluşturur.
+  // Backend oluşturulan kaydın id'sini döndürüyor.
+  createTraining(request: TrainingRequest): Observable<string> {
+    return this.http.post<string>(this.baseUrl, request);
+  }
+
 }

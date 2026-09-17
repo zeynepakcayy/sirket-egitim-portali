@@ -32,3 +32,19 @@ export interface PagedResult<T> {
   pageSize: number;
   totalPages: number;
 }
+
+
+// POST /api/trainings ve PUT /api/trainings/{id} gövdesi.
+// Alan adları backend'deki DTO ile birebir aynı olmalı.
+export interface TrainingRequest {
+  title: string;
+  description: string;
+  startDate: string;
+  endDate: string;
+  location: string;
+  category: string;
+  capacity: number;
+  externalInstructorName: string | null;
+  externalInstructorEmail: string | null;
+  externalInstructorOrganization: string | null;
+}
