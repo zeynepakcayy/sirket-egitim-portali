@@ -168,9 +168,9 @@ public class TrainingsController : ControllerBase
             Location = t.Location,
             Category = t.Category,
             Capacity = t.Capacity,
-            // Sayımı artık veritabanı yapıyor, başvurular hafızaya çekilmiyor
-            EnrolledCount = t.Applications.Count(a => a.ApprovalStatus == ApprovalStatus.Approved),
-            // Ham durum. Görünen durum aşağıda hesaplanıyor —
+            // Kontenjanı dolduranlar sadece Applied olanlar.
+            // Waitlisted yedekte bekliyor, Cancelled vazgeçmiş — ikisi de sayılmaz.
+            EnrolledCount = t.Applications.Count(a => a.Status == ApplicationStatus.Applied),// Ham durum. Görünen durum aşağıda hesaplanıyor —
             // bu Select veritabanında çalıştığı için kendi
             // metodumuzu buraya koyamıyoruz.
             Status = t.Status.ToString(),
@@ -239,11 +239,13 @@ public class TrainingsController : ControllerBase
             Location = training.Location,
             Category = training.Category,
             Capacity = training.Capacity,
-            EnrolledCount = training.Applications.Count(a => a.ApprovalStatus == ApprovalStatus.Approved),
-            Status = GetDisplayStatus(training.Status, training.StartDate, training.EndDate),
+            EnrolledCount = training.Applications.Count(a => a.Status == ApplicationStatus.Applied),            Status = GetDisplayStatus(training.Status, training.StartDate, training.EndDate),
 
             //eğitimi açan kili isteği gönderen kişiyle aynı mı
-            IsOwner = training.InstructorUserId == currentUserId
+            IsOwner = training.InstructorUserId == currentUserId,
+            //okuma tarafında 3 alanun kuralın aynısı
+            //externalInstructorName doluysa dış eğitmen
+            IsExternalInstructor = !string.IsNullOrEmpty(training.ExternalInstructorName)
         };
 
         return Ok(dto);
@@ -320,7 +322,9 @@ public class TrainingsController : ControllerBase
         if (currentUserIdText == null || !Guid.TryParse(currentUserIdText, out var currentUserId))
             return Unauthorized();
 
-        if (training.InstructorUserId != currentUserId)
+        // Sahiplik kuralı: Instructor sadece kendi eğitimini düzenleyebilir.
+        // HRManager ise hepsini — kurumsal sorumluluk onda.
+        if (training.InstructorUserId != currentUserId && !User.IsInRole("HRManager"))
             return Forbid();
 
     
@@ -384,9 +388,9 @@ public class TrainingsController : ControllerBase
         if (currentUserIdText == null || !Guid.TryParse(currentUserIdText, out var currentUserId))
             return Unauthorized();
 
-        if (training.InstructorUserId != currentUserId)
-            return Forbid();
-
+        // Bu endpoint zaten sadece HRManager'a açık ([Authorize] özniteliği).
+        // HRManager herkesin eğitimini iptal edebilir, ayrı bir
+        // sahiplik kontrolü gerekmiyor.
 
         
 

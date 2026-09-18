@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { TrainingListItem, TrainingDetail, PagedResult, TrainingRequest } from '../models/training.model';
+import { TrainingListItem, TrainingDetail, PagedResult, TrainingRequest, TrainingUpdateRequest } from '../models/training.model';
 
 // Katalog listesini çekerken gönderilebilecek seçenekler.
 // Hepsi isteğe bağlı (?) — gönderilmeyeni backend varsayılanla dolduruyor.
@@ -48,6 +48,13 @@ export class TrainingService {
   // Backend oluşturulan kaydın id'sini döndürüyor.
   createTraining(request: TrainingRequest): Observable<string> {
     return this.http.post<string>(this.baseUrl, request);
+  }
+
+
+  // PUT /api/trainings/{id} — mevcut eğitimi günceller.
+  // Backend 204 No Content döndürüyor, yani cevap gövdesi boş.
+  updateTraining(id: string, request: TrainingUpdateRequest): Observable<void> {
+    return this.http.put<void>(`${this.baseUrl}/${id}`, request);
   }
 
 }

@@ -189,15 +189,20 @@
 
       <div class="detail-actions">
         <button class="details-button detail-close" (click)="closeDetail()">Close</button>
-        @if (detail.status !== 'Cancelled') {
-          @if (detail.isOwner) {
-            <button class="details-button detail-primary">Edit</button>
-          } @else {
-            <button class="details-button detail-primary" (click)="applyToTraining()">
-              {{ getBadgeLabel(detail) }}
-            </button>
+            <!-- Düğme kuralı:
+          İptal edilmişse hiçbir düğme yok.
+          HRManager her eğitimi düzenleyebiliyor, hiçbirine başvuramıyor.
+          Diğerleri: kendi eğitimiyse Edit, değilse Apply. -->
+          @if (detail.status !== 'Cancelled') {
+            @if (isHrManager() || detail.isOwner) {
+              <button class="details-button detail-primary"
+                (click)="editTraining(detail.id)">Edit</button>
+            } @else {
+              <button class="details-button detail-primary" (click)="applyToTraining()">
+                {{ getBadgeLabel(detail) }}
+              </button>
+            }
           }
-        }
       </div>
     }
   </p-dialog>

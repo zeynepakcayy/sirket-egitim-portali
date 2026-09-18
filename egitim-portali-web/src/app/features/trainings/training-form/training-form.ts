@@ -1,4 +1,4 @@
-import { Component, inject, signal, computed } from '@angular/core';
+import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { DatePickerModule } from 'primeng/datepicker';
 import { SelectModule } from 'primeng/select';
@@ -7,9 +7,9 @@ import { TextareaModule } from 'primeng/textarea';
 import { CheckboxModule } from 'primeng/checkbox';
 import { AuthService } from '../../../core/services/auth.service';
 import { MessageService } from 'primeng/api';
-import { Router } from '@angular/router';
+import { Router, ActivatedRoute} from '@angular/router';
 import { TrainingService } from '../../../core/services/training.service';
-import { TrainingRequest } from '../../../core/models/training.model';
+import { TrainingRequest, TrainingUpdateRequest, TrainingDetail } from '../../../core/models/training.model';
 
 @Component({
   selector: 'app-training-form',
@@ -24,13 +24,50 @@ import { TrainingRequest } from '../../../core/models/training.model';
   templateUrl: './training-form.html',
   styleUrl: './training-form.scss'
 })
-export class TrainingForm {
+export class TrainingForm implements OnInit {
   private authService = inject(AuthService);
   private messageService = inject(MessageService);
 
 
   private trainingService = inject(TrainingService);
   private router = inject(Router);
+
+
+
+  private route = inject(ActivatedRoute);
+
+  /*
+  Düzenleme modu. Adres /trainings/:id/edit ise editingId dolu,
+  /trainings/create ise null. Tek bileşen iki iş yapıyor:
+  başlık, düğme yazısı ve kaydetme davranışı buna göre değişiyor.
+  */
+  editingId = signal<string | null>(null);
+  isEditMode = computed(() => this.editingId() !== null);
+
+  // Düzenleme modunda eğitim çekilirken ekranda bir şey yok.
+  loadingDetail = signal(false);
+
+  /*
+  Eğitimin durumu. Sadece düzenleme modunda görünüyor —
+  oluştururken backend otomatik OpenForApplication atıyor.
+
+  Listede iki seçenek var: Ongoing ve Completed veritabanında
+  tutulmuyor, backend tarihten hesaplıyor. Kullanıcıya
+  seçtirilmesi anlamsız olurdu.
+  */
+  status = signal<string>('OpenForApplication');
+
+  statusOptions = [
+    { label: 'Open for Application', value: 'OpenForApplication' },
+    { label: 'Cancelled', value: 'Cancelled' }
+  ];
+
+  // Düzenlemede Clear, formu boşaltmak yerine kayıttaki
+  // değerlere geri dönmeli. Çekilen veriyi bunun için saklıyoruz.
+  private loadedDetail: TrainingDetail | null = null;
+
+
+
 
   // Kaydetme sürerken düğmeyi kilitliyoruz — çift tıklamada
   // iki eğitim oluşmasın.
@@ -107,57 +144,179 @@ export class TrainingForm {
   }
 
 
-  submit(): void {
-    // Doğrulama geçmezse istek hiç gönderilmiyor.
-    if (!this.validate()) {
-      this.messageService.add({
-        severity: 'error',
-        summary: 'Please fix the errors in the form.',
-        life: 3000
-      });
-      return;
+
+  ngOnInit(): void {
+    // Adresteki :id yer tutucusu. Oluşturma adresinde bu parametre
+    // hiç yok, o yüzden null dönüyor.
+    const id = this.route.snapshot.paramMap.get('id');
+    if (id !== null) {
+      this.editingId.set(id);
+      this.loadTraining(id);
     }
+  }
 
-    this.saving.set(true);
+  loadTraining(id: string): void {
+    this.loadingDetail.set(true);
 
-    const request: TrainingRequest = {
-      title: this.title().trim(),
-      description: this.description().trim(),
-      // toLocalIso: tarayıcının saat diliminde gönderiyoruz.
-      startDate: this.toLocalIso(this.buildDateTime(this.startDate(), this.startTime())!),
-      endDate: this.toLocalIso(this.buildDateTime(this.endDate(), this.endTime())!),
-      location: this.location().trim(),
-      category: this.category()!,
-      capacity: this.capacity()!,
-      // Dış eğitmen seçili değilse null gönderiyoruz.
-      // Ekranda kendi bilgilerimiz görünüyor ama onları göndermiyoruz:
-      // ExternalInstructorName dolu olursa backend eğitimi
-      // "dış eğitmenli" sayar ve kayıt yanlış olur.
-      externalInstructorName: this.isExternal() ? this.externalName().trim() : null,
-      externalInstructorEmail: this.isExternal() ? this.externalEmail().trim() : null,
-      externalInstructorOrganization: this.isExternal() ? this.externalOrganization().trim() : null
-    };
-
-    this.trainingService.createTraining(request).subscribe({
-      next: () => {
-        this.saving.set(false);
-        this.messageService.add({
-          severity: 'success',
-          summary: 'Training created.',
-          life: 3000
-        });
-        this.router.navigate(['/trainings']);
+    this.trainingService.getTraining(id).subscribe({
+      next: (detail) => {
+        this.loadedDetail = detail;
+        this.fillForm(detail);
+        this.loadingDetail.set(false);
       },
       error: (err) => {
-        console.error('Create error:', err);
-        this.saving.set(false);
+        console.error('Load error:', err);
+        this.loadingDetail.set(false);
         this.messageService.add({
           severity: 'error',
-          summary: 'Could not create training.',
+          summary: 'Could not load the training.',
           life: 4000
         });
+        this.router.navigate(['/trainings']);
       }
     });
+  }
+
+  /*
+  Gelen kaydı form alanlarına dağıtır.
+
+  Dış eğitmen alanlarının doldurulması KRİTİK: PUT isteği gelen
+  değeri koşulsuz yazıyor. Doldurmazsak kullanıcı sadece başlığı
+  değiştirip kaydettiğinde dış eğitmen bilgileri sessizce silinir.
+  */
+  private fillForm(detail: TrainingDetail): void {
+    this.title.set(detail.title);
+    this.category.set(detail.category);
+    this.capacity.set(detail.capacity);
+    this.location.set(detail.location);
+    this.description.set(detail.description);
+
+    // Backend tarihi tek metin olarak gönderiyor ("2026-10-20T09:30:00Z").
+    // Form tarihi ve saati ayrı tutuyor, ikiye bölüyoruz.
+    const start = new Date(detail.startDate);
+    const end = new Date(detail.endDate);
+
+    this.startDate.set(start);
+    this.startTime.set(this.timeFromDate(start));
+    this.endDate.set(end);
+    this.endTime.set(this.timeFromDate(end));
+    this.endMinDate.set(start);
+
+    /*
+    Dış eğitmen bilgileri. Backend isExternalInstructor alanıyla
+    doğrudan söylüyor — isim karşılaştırarak tahmin yürütmüyoruz.
+
+    Doldurulması KRİTİK: PUT isteği gelen değeri koşulsuz yazıyor.
+    Doldurmazsak kullanıcı sadece başlığı değiştirip kaydettiğinde
+    dış eğitmen bilgileri sessizce silinir.
+    */
+    this.isExternal.set(detail.isExternalInstructor);
+    if (detail.isExternalInstructor) {
+      this.externalName.set(detail.instructorName);
+      this.externalEmail.set(detail.instructorEmail ?? '');
+      this.externalOrganization.set(detail.instructorAffiliation ?? '');
+    }
+
+    // Backend hesaplanmış durumu gönderiyor (Ongoing/Completed
+    // olabilir). Listede bu ikisi yok; iptal değilse açık sayıyoruz.
+    this.status.set(detail.status === 'Cancelled' ? 'Cancelled' : 'OpenForApplication');
+  }
+
+  // Date nesnesinden "09:30" biçiminde saat çıkarır.
+  private timeFromDate(date: Date): string {
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return `${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  }
+
+
+
+
+    submit(): void {
+      // Doğrulama geçmezse istek hiç gönderilmiyor.
+      if (!this.validate()) {
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Please fix the errors in the form.',
+          life: 3000
+        });
+        return;
+      }
+
+      this.saving.set(true);
+
+      const request: TrainingRequest = {
+        title: this.title().trim(),
+        description: this.description().trim(),
+        // toLocalIso: tarayıcının saat diliminde gönderiyoruz.
+        startDate: this.toLocalIso(this.buildDateTime(this.startDate(), this.startTime())!),
+        endDate: this.toLocalIso(this.buildDateTime(this.endDate(), this.endTime())!),
+        location: this.location().trim(),
+        category: this.category()!,
+        capacity: this.capacity()!,
+        // Dış eğitmen seçili değilse null gönderiyoruz.
+        // Ekranda kendi bilgilerimiz görünüyor ama onları göndermiyoruz:
+        // ExternalInstructorName dolu olursa backend eğitimi
+        // "dış eğitmenli" sayar ve kayıt yanlış olur.
+        externalInstructorName: this.isExternal() ? this.externalName().trim() : null,
+        externalInstructorEmail: this.isExternal() ? this.externalEmail().trim() : null,
+        externalInstructorOrganization: this.isExternal() ? this.externalOrganization().trim() : null
+      };
+
+      if (this.isEditMode()) {
+        this.sendUpdate(request);
+      } else {
+        this.sendCreate(request);
+      }
+    }
+
+    private sendCreate(request: TrainingRequest): void {
+      this.trainingService.createTraining(request).subscribe({
+        next: () => {
+          this.saving.set(false);
+          this.messageService.add({
+            severity: 'success',
+            summary: 'Training created.',
+            life: 3000
+          });
+          this.router.navigate(['/trainings']);
+        },
+        error: (err) => {
+          console.error('Create error:', err);
+          this.saving.set(false);
+          this.messageService.add({
+            severity: 'error',
+            summary: 'Could not create training.',
+            life: 4000
+          });
+        }
+      });
+    }
+
+    private sendUpdate(request: TrainingRequest): void {
+      // Create isteğinin üstüne status ekliyoruz — PUT bunu zorunlu tutuyor.
+      const updateRequest: TrainingUpdateRequest = { ...request, status: this.status() };
+
+      this.trainingService.updateTraining(this.editingId()!, updateRequest).subscribe({
+        next: () => {
+          this.saving.set(false);
+          this.messageService.add({
+            severity: 'success',
+            summary: 'Training updated.',
+            life: 3000
+          });
+          this.router.navigate(['/trainings']);
+        },
+        error: (err) => {
+          console.error('Update error:', err);
+          this.saving.set(false);
+          // 403: backend sahiplik kontrolü reddetti. Başkasının
+          // eğitimini düzenlemeye çalışıyor demektir.
+          const message = err.status === 403
+            ? 'You can only edit trainings you created.'
+            : 'Could not update training.';
+          this.messageService.add({ severity: 'error', summary: message, life: 4000 });
+        }
+      });
   }
 
   /*
@@ -339,8 +498,21 @@ export class TrainingForm {
     return combined;
   }
 
-  // Formu sıfırlar. Sayfadan çıkmaz, sadece yazılanları temizler.
+    /*
+  Clear düğmesi. Oluşturmada alanları boşaltıyor,
+  düzenlemede kayıttaki değerlere geri dönüyor —
+  "yaptığım değişiklikleri geri al" anlamında.
+  */
   clearForm(): void {
+    this.errors.set({});
+    this.startTimeError.set('');
+    this.endTimeError.set('');
+
+    if (this.loadedDetail !== null) {
+      this.fillForm(this.loadedDetail);
+      return;
+    }
+
     this.title.set('');
     this.category.set(null);
     this.capacity.set(null);
@@ -355,9 +527,7 @@ export class TrainingForm {
     this.externalName.set('');
     this.externalEmail.set('');
     this.externalOrganization.set('');
-    this.errors.set({});
-    this.startTimeError.set('');
-    this.endTimeError.set('');
+    this.status.set('OpenForApplication');
   }
 
 }

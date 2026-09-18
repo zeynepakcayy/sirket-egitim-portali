@@ -21,6 +21,8 @@ export interface TrainingDetail extends TrainingListItem {
   instructorAffiliation: string | null;
   instructorEmail: string | null;
   isOwner: boolean;
+  // Dış eğitmenli mi? Düzenleme formu onay kutusunu bununla işaretliyor.
+  isExternalInstructor: boolean;
 }
 
 // Sayfalı cevabın dış zarfı. <T> sayesinde ileride
@@ -47,4 +49,13 @@ export interface TrainingRequest {
   externalInstructorName: string | null;
   externalInstructorEmail: string | null;
   externalInstructorOrganization: string | null;
+}
+
+
+
+// Create'in her şeyi + Status. Backend UpdateTrainingDto'da
+// Status [Required] olduğu için burada da zorunlu bıraktık —
+// unutulursa TypeScript uyarır, 400 beklemeye gerek kalmaz.
+export interface TrainingUpdateRequest extends TrainingRequest {
+  status: string;
 }

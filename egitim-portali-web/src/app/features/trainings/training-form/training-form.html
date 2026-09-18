@@ -1,6 +1,6 @@
 <div class="form-page">
   <p class="breadcrumb">Trainings</p>
-  <h1 class="page-title">Create training</h1>
+  <h1 class="page-title">{{ isEditMode() ? 'Edit training' : 'Create training' }}</h1>
 
   <div class="form-body">
 
@@ -140,6 +140,24 @@
       }
     </div>
 
+
+    <!-- Status sadece düzenlemede görünüyor. Oluştururken backend
+         otomatik OpenForApplication atıyor.
+         Listede iki seçenek var: Ongoing ve Completed veritabanında
+         tutulmuyor, backend tarihten hesaplıyor. -->
+    @if (isEditMode()) {
+      <div class="field">
+        <label for="status">Status</label>
+        <p-select inputId="status"
+          [options]="statusOptions"
+          [ngModel]="status()"
+          (onChange)="status.set($event.value)"
+          optionLabel="label"
+          optionValue="value" />
+      </div>
+    }
+
+
     <!-- Dış eğitmen bölümü.
          Kutu kapalıyken alanlar kullanıcının kendi bilgileriyle
          dolu ve kilitli görünüyor. Bu sadece gösterim —
@@ -212,11 +230,19 @@
     }
 
     <div class="form-actions">
-      <button class="form-button" (click)="clearForm()">Clear</button>
+      <!-- Düzenlemede Clear, formu boşaltmak yerine kayıttaki
+            değerlere geri dönüyor. -->
+      <button class="form-button" (click)="clearForm()">
+        {{ isEditMode() ? 'Reset' : 'Clear' }}
+      </button>
       <button class="form-button form-button-primary"
         [disabled]="saving()"
         (click)="submit()">
-        {{ saving() ? 'Saving...' : 'Create training' }}
+        @if (saving()) {
+          Saving...
+        } @else {
+          {{ isEditMode() ? 'Save changes' : 'Create training' }}
+        }
       </button>
     </div>
 

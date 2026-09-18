@@ -12,6 +12,8 @@ import { authGuard } from './core/guards/auth.guard';
 import { TrainingCatalog } from './features/trainings/training-catalog/training-catalog';
 import { TrainingForm } from './features/trainings/training-form/training-form';
 
+import { roleGuard } from './core/guards/role.guard';
+
 export const routes: Routes = [
   //layout dışında, tam ekran açılan sayfalar
   { path: 'login', component: Login },
@@ -28,7 +30,20 @@ export const routes: Routes = [
       { path: 'my-applications', component: Dashboard },
       { path: 'my-certificates', component: Dashboard },
       { path: 'trainings', component: TrainingCatalog },
-      { path: 'trainings/create', component: TrainingForm },
+            // Rol kontrolü: menüde düğmeyi gizlemek koruma sağlamaz,
+      // adres elle yazılabiliyor.
+      {
+        path: 'trainings/create',
+        component: TrainingForm,
+        canActivate: [roleGuard],
+        data: { roles: ['Instructor', 'HRManager'] }
+      },
+      {
+        path: 'trainings/:id/edit',
+        component: TrainingForm,
+        canActivate: [roleGuard],
+        data: { roles: ['Instructor', 'HRManager'] }
+      },
       // Düzenleme aynı bileşeni kullanıyor. :id bir yer tutucu —
       // adresteki gerçek değer bileşen içinde okunacak.
       { path: 'trainings/:id/edit', component: TrainingForm },

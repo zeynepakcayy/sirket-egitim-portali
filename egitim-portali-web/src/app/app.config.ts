@@ -11,14 +11,19 @@ import { MessageService } from 'primeng/api';
 
 import { routes } from './app.routes';
 
+import { environment } from '../environments/environment';
+
 export const appConfig: ApplicationConfig = {
   providers: [
+
+    
     provideRouter(routes),
     /*bir dizi alıyor, çünkü ileride birden fazla interceptor olabilir
     dizideki sıra çalışma sırasıdır: ilk yazılan isteği ilk görür.*/
     provideHttpClient(withInterceptors([authInterceptor])),
     provideAnimationsAsync(),
     providePrimeNG({
+      license: environment.primeuiLicense,
       theme: {
         preset: AppPreset,
         options: {

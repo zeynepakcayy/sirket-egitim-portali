@@ -1,4 +1,4 @@
-import { Component, inject, signal, OnInit } from '@angular/core';
+import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import {DatePipe} from '@angular/common'; 
 
 //ngModel'i getiriyor
@@ -14,6 +14,11 @@ import { SkeletonModule } from 'primeng/skeleton';
 import { TrainingService } from '../../../core/services/training.service';
 import { TrainingListItem, TrainingDetail } from '../../../core/models/training.model';
 
+import { Router } from '@angular/router';
+
+import { AuthService } from '../../../core/services/auth.service';
+
+
 @Component({
   selector: 'app-training-catalog',
   standalone: true,
@@ -23,6 +28,16 @@ import { TrainingListItem, TrainingDetail } from '../../../core/models/training.
   styleUrl: './training-catalog.scss'
 })
 export class TrainingCatalog implements OnInit {
+  private router = inject(Router);
+
+  private authService = inject(AuthService);
+  /*
+  HRManager tamamen yönetici rolü: her eğitimi düzenleyebiliyor
+  ama hiçbirine başvuramıyor. Bu yüzden büyük kartta
+  Apply düğmesini hiç görmüyor.
+  */
+  isHrManager = computed(() => this.authService.currentUser()?.role === 'HRManager');
+  
   private trainingService = inject(TrainingService);
 
   // Ekranda gösterilecek veriler. Signal kullanıyoruz —
@@ -211,6 +226,14 @@ export class TrainingCatalog implements OnInit {
   // Close düğmesi ve dışarı tıklama buraya düşüyor
   closeDetail(): void {
     this.detailVisible.set(false);
+  }
+
+
+  // Büyük karttaki Edit düğmesi. Pencereyi kapatıp
+  // düzenleme sayfasına gidiyoruz.
+  editTraining(id: string): void {
+    this.detailVisible.set(false);
+    this.router.navigate(['/trainings', id, 'edit']);
   }
 
   // Apply düğmesi.

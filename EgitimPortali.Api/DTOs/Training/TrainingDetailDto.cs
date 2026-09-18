@@ -29,6 +29,12 @@ public class TrainingDetailDto
     public bool IsOwner { get; set; }
 
 
+    // Bu eğitim dış eğitmenli mi? Backend zaten biliyor —
+    // InstructorName tek alan olarak geldiği için frontend
+    // buna bakarak tahmin yürütmek zorunda kalmasın diye eklendi.
+    // Düzenleme formu onay kutusunu bununla işaretliyor.
+    public bool IsExternalInstructor { get; set; }
+
     public DateTime StartDate { get; set; }
     public DateTime EndDate { get; set; }
     public string Location { get; set; } = string.Empty;

@@ -11,8 +11,7 @@ public class Application
     public Training? Training { get; set; }
 
     public DateTime AppliedAt { get; set; } = DateTime.UtcNow;
-    public ApprovalStatus ApprovalStatus { get; set; } = ApprovalStatus.Pending;
-    public AttendanceStatus AttendanceStatus { get; set; } = AttendanceStatus.Pending;
+    public ApplicationStatus Status { get; set; } = ApplicationStatus.Applied;    public AttendanceStatus AttendanceStatus { get; set; } = AttendanceStatus.Pending;
 
     public Certificate? Certificate { get; set; }
 }

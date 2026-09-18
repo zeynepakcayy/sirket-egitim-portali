@@ -11,3 +11,6 @@ dist/
 .vs/
 .vscode/
 *.user
+
+# PrimeUI lisans anahtari
+egitim-portali-web/src/environments/environment.ts
