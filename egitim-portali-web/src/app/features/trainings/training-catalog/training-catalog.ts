@@ -11,7 +11,10 @@ import {DialogModule} from 'primeng/dialog';
 
 import { SkeletonModule } from 'primeng/skeleton';
 
+import { MessageService } from 'primeng/api';
+
 import { TrainingService } from '../../../core/services/training.service';
+import { ApplicationService } from '../../../core/services/application.service';
 import { TrainingListItem, TrainingDetail } from '../../../core/models/training.model';
 
 import { Router } from '@angular/router';
@@ -39,6 +42,8 @@ export class TrainingCatalog implements OnInit {
   isHrManager = computed(() => this.authService.currentUser()?.role === 'HRManager');
   
   private trainingService = inject(TrainingService);
+  private applicationService = inject(ApplicationService);
+  private messageService = inject(MessageService);
 
   // Ekranda gösterilecek veriler. Signal kullanıyoruz —
   // değer değişince Angular ekranı kendisi güncelliyor.
@@ -90,6 +95,17 @@ export class TrainingCatalog implements OnInit {
   detailVisible = signal(false);
   selectedTraining = signal<TrainingDetail | null>(null);
   detailLoading = signal(false);
+
+  /*
+  Başvuru işlemleri.
+  applying: Apply ya da Withdraw isteği yolda mı? Düğmeyi kilitliyor —
+    çift tıklamada iki istek gitmesin.
+  confirmVisible: Withdraw onay penceresi açık mı?
+    Geri çekme geri alınamıyor (yer yedekteki kişiye geçiyor),
+    o yüzden tek tıkla olmamalı.
+  */
+  applying = signal(false);
+  confirmVisible = signal(false);
 
 
   // Katalog listesinin durumu.
@@ -223,6 +239,19 @@ export class TrainingCatalog implements OnInit {
     });
   }
 
+  /*
+  Başvurudan ya da geri çekmeden sonra pencerenin içeriğini tazeler.
+  openDetail'den farkı: içeriği önce boşaltmıyor. Boşaltsaydı pencere
+  bir an "Loading..." gösterip titrerdi; burada eski veri yerinde
+  kalıyor, yenisi gelince üzerine yazılıyor.
+  */
+  private refreshDetail(id: string): void {
+    this.trainingService.getTraining(id).subscribe({
+      next: (detail) => this.selectedTraining.set(detail),
+      error: (err) => console.error('Detail refresh error:', err)
+    });
+  }
+
   // Close düğmesi ve dışarı tıklama buraya düşüyor
   closeDetail(): void {
     this.detailVisible.set(false);
@@ -236,9 +265,91 @@ export class TrainingCatalog implements OnInit {
     this.router.navigate(['/trainings', id, 'edit']);
   }
 
+  /*
+  Kullanıcının bu eğitimde geçerli bir başvurusu var mı?
+  Applied ya da Waitlisted ise evet — Withdraw görmeli.
+  Cancelled ise vazgeçmiş demek, tekrar Apply görebilir.
+  */
+  hasActiveApplication(detail: TrainingDetail): boolean {
+    const status = detail.myApplication?.status;
+    return status === 'Applied' || status === 'Waitlisted';
+  }
+
   // Apply düğmesi.
-  applyToTraining(): void {
-    alert('Applications will open soon.');
+  applyToTraining(detail: TrainingDetail): void {
+    this.applying.set(true);
+
+    this.applicationService.apply(detail.id).subscribe({
+      next: (result) => {
+        this.applying.set(false);
+
+        // Backend kişinin hangi duruma düştüğünü söylüyor.
+        // Mesaj buna göre değişiyor: yedek listeye düşen kişi
+        // "kaydoldum" sanmamalı.
+        const summary = result.status === 'Waitlisted'
+          ? "You've been added to the waitlist."
+          : "You're registered for this training.";
+        this.messageService.add({ severity: 'success', summary, life: 3000 });
+
+        // Pencere açık kalıyor, içeriği tazeleniyor (düğme Withdraw'a döner).
+        // Arkadaki liste de yenileniyor ki kartlardaki doluluk sayısı güncel olsun.
+        this.refreshDetail(detail.id);
+        this.loadTrainings();
+      },
+      error: (err) => {
+        this.applying.set(false);
+        this.showError(err, 'Could not apply to this training.');
+      }
+    });
+  }
+
+  // Withdraw düğmesi. Doğrudan geri çekmiyor, önce onay penceresini açıyor.
+  openWithdrawConfirm(): void {
+    this.confirmVisible.set(true);
+  }
+
+  closeWithdrawConfirm(): void {
+    this.confirmVisible.set(false);
+  }
+
+  // Onay penceresindeki Withdraw düğmesi.
+  confirmWithdraw(): void {
+    const detail = this.selectedTraining();
+    if (detail === null) return;
+
+    this.applying.set(true);
+
+    this.applicationService.withdraw(detail.id).subscribe({
+      next: () => {
+        this.applying.set(false);
+        this.confirmVisible.set(false);
+        this.messageService.add({
+          severity: 'success',
+          summary: "You've withdrawn from this training.",
+          life: 3000
+        });
+        this.refreshDetail(detail.id);
+        this.loadTrainings();
+      },
+      error: (err) => {
+        this.applying.set(false);
+        this.confirmVisible.set(false);
+        this.showError(err, 'Could not withdraw from this training.');
+      }
+    });
+  }
+
+  /*
+  Backend 400 döndürdüğünde gövdeye düz bir metin yazıyor
+  ("This training has already started." gibi). Varsa onu gösteriyoruz,
+  kullanıcı neden olmadığını anlasın. Yoksa genel mesaj.
+  */
+  private showError(err: any, fallback: string): void {
+    console.error('Application error:', err);
+    const summary = typeof err?.error === 'string' && err.error.length > 0
+      ? err.error
+      : fallback;
+    this.messageService.add({ severity: 'error', summary, life: 4000 });
   }
 
 

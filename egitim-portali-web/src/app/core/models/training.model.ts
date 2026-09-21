@@ -23,6 +23,9 @@ export interface TrainingDetail extends TrainingListItem {
   isOwner: boolean;
   // Dış eğitmenli mi? Düzenleme formu onay kutusunu bununla işaretliyor.
   isExternalInstructor: boolean;
+  // Giriş yapmış kişinin bu eğitimdeki başvurusu.
+  // Başvurmamışsa null — büyük kart Apply ile Withdraw arasında buna göre seçiyor.
+  myApplication: MyApplication | null;
 }
 
 // Sayfalı cevabın dış zarfı. <T> sayesinde ileride
@@ -58,4 +61,14 @@ export interface TrainingRequest {
 // unutulursa TypeScript uyarır, 400 beklemeye gerek kalmaz.
 export interface TrainingUpdateRequest extends TrainingRequest {
   status: string;
+}
+
+
+
+// Giriş yapmış kişinin bir eğitimdeki başvurusu.
+// Backend'deki MyApplicationDto ile alan adları birebir aynı.
+export interface MyApplication {
+  id: string;
+  status: string;
+  appliedAt: string;
 }

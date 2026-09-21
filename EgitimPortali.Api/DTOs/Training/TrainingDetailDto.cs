@@ -5,6 +5,8 @@ liste DTO'sundakilere ek olarak açıklama, eğitmenin iletişim
 bilgileri ve düzenleme yetkisi bilgisi taşır.
 */
 
+using EgitimPortali.Api.DTOs.Application;
+
 
 namespace EgitimPortali.Api.DTOs.Training;
 
@@ -35,6 +37,13 @@ public class TrainingDetailDto
     // Düzenleme formu onay kutusunu bununla işaretliyor.
     public bool IsExternalInstructor { get; set; }
 
+    /*
+    Giriş yapmış kişinin bu eğitimdeki başvurusu.
+    Başvurmamışsa null — büyük kart Apply düğmesini o zaman gösteriyor.
+    Başvurmuşsa durumu burada: Applied, Waitlisted ya da Cancelled.
+    */
+    public MyApplicationDto? MyApplication { get; set; }
+
     public DateTime StartDate { get; set; }
     public DateTime EndDate { get; set; }
     public string Location { get; set; } = string.Empty;
@@ -42,4 +51,5 @@ public class TrainingDetailDto
     public int Capacity { get; set; }
     public int EnrolledCount { get; set; }
     public string Status { get; set; } = string.Empty;
-}
+
+    }

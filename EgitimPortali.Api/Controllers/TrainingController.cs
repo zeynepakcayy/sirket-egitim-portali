@@ -18,7 +18,10 @@ using System.Security.Claims;
 
 using EgitimPortali.Api.DTOs.Common;
 
+using EgitimPortali.Api.DTOs.Application;
+
 namespace EgitimPortali.Api.Controllers;
+using EgitimPortali.Api.Helpers;
 
 [ApiController]
 [Route("api/trainings")]
@@ -182,7 +185,7 @@ public class TrainingsController : ControllerBase
         // Veri artık hafızada; görünen durumu burada hesaplıyoruz.
         foreach (var item in items)
         {
-            item.Status = GetDisplayStatus(item.StatusRaw, item.StartDate, item.EndDate);
+            item.Status = TrainingStatusHelper.GetDisplayStatus(item.StatusRaw, item.StartDate, item.EndDate);
         }
 
         var result = new PagedResult<TrainingListDto>
@@ -213,6 +216,24 @@ public class TrainingsController : ControllerBase
         var currentUserIdText = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         Guid.TryParse(currentUserIdText, out var currentUserId);
 
+
+        /*
+        Bu kişinin bu eğitimdeki başvurusu. Yoksa null kalıyor.
+        HRManager hiç başvuramadığı için onda hep null olacak.
+        Başvurular yukarıdaki Include ile zaten çekildi —
+        ek bir veritabanı isteği olmuyor.
+        */
+        var myApplication = training.Applications
+            .Where(a => a.UserId == currentUserId)
+            .Select(a => new MyApplicationDto
+            {
+                Id = a.Id,
+                Status = a.Status.ToString(),
+                AppliedAt = a.AppliedAt
+            })
+            .FirstOrDefault();
+
+
         var dto = new TrainingDetailDto
         {
             Id = training.Id,
@@ -239,13 +260,18 @@ public class TrainingsController : ControllerBase
             Location = training.Location,
             Category = training.Category,
             Capacity = training.Capacity,
-            EnrolledCount = training.Applications.Count(a => a.Status == ApplicationStatus.Applied),            Status = GetDisplayStatus(training.Status, training.StartDate, training.EndDate),
+            EnrolledCount = training.Applications.Count(a => a.Status == ApplicationStatus.Applied), 
+            Status = TrainingStatusHelper.GetDisplayStatus(training.Status, training.StartDate, training.EndDate),
 
             //eğitimi açan kili isteği gönderen kişiyle aynı mı
             IsOwner = training.InstructorUserId == currentUserId,
             //okuma tarafında 3 alanun kuralın aynısı
             //externalInstructorName doluysa dış eğitmen
-            IsExternalInstructor = !string.IsNullOrEmpty(training.ExternalInstructorName)
+            IsExternalInstructor = !string.IsNullOrEmpty(training.ExternalInstructorName),
+        
+            MyApplication = myApplication
+
+
         };
 
         return Ok(dto);

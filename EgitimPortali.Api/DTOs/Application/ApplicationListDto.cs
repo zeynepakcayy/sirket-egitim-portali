@@ -6,6 +6,8 @@ Eğitim bilgileri de içinde — kullanıcı "hangi eğitime başvurmuştum"
 sorusunu tek istekte cevaplayabilsin diye.
 */
 
+using System.Text.Json.Serialization;
+
 namespace EgitimPortali.Api.DTOs.Application;
 
 public class ApplicationListDto
@@ -25,4 +27,11 @@ public class ApplicationListDto
 
     // Eğitimin durumu (hesaplanmış): OpenForApplication, Ongoing, Completed, Cancelled
     public string TrainingStatus { get; set; } = string.Empty;
+
+    // Veritabanındaki ham eğitim durumu. Sadece hesaplama
+    // sırasında kullanılıyor, frontend'e gitmiyor.
+    // Tam yol yazılıyor: bu sınıfta "TrainingStatus" adında bir alan da var,
+    // kısa yazılırsa C# onu enum yerine o alan sanıyor.
+    [JsonIgnore]
+    public EgitimPortali.Api.Models.TrainingStatus TrainingStatusRaw { get; set; }
 }

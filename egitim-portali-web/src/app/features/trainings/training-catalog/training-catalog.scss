@@ -322,3 +322,54 @@ Sabit genişlik vererek hizaladık.
   margin-top: 1.5rem;
   padding: 0.5rem 1.5rem;
 }
+
+
+/* ---- Başvuru durumu ve Withdraw ---- */
+
+/* Kullanıcının bu eğitimdeki durumu. Rozet renkleriyle aynı aile:
+   yeşil kayıtlı, sarı yedek. */
+.my-status {
+  margin-top: 1.25rem;
+  padding: 0.75rem 1rem;
+  border-radius: 6px;
+  font-size: 0.9375rem;
+}
+
+.my-status-applied {
+  background: #1f6f43;
+  color: #d7f5e4;
+}
+
+.my-status-waitlisted {
+  background: #7a5a12;
+  color: #fbeccb;
+}
+
+/* Geri alınamayan eylem kırmızı çerçeveyle ayrışsın. */
+.detail-danger {
+  border-color: #b04444;
+  color: #f0b4b4;
+
+  &:hover {
+    background: #3a1c1c;
+  }
+}
+
+/* Kilitli düğme soluk görünsün, tıklanamayacağı belli olsun. */
+.details-button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.confirm-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin: 0 0 0.75rem 0;
+}
+
+.confirm-text {
+  color: var(--p-text-muted-color);
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  margin: 0;
+}

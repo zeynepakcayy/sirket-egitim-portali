@@ -172,6 +172,17 @@
         <div class="capacity-fill" [style.width.%]="getFillPercent(detail)"></div>
       </div>
 
+      <!-- Kullanıcının başvuru durumu. Sadece geçerli bir başvurusu
+           varsa görünüyor; Cancelled (vazgeçmiş) ise hiçbir şey yazmıyor,
+           düğme tekrar Apply'a dönüyor. -->
+      @if (detail.myApplication?.status === 'Applied') {
+        <div class="my-status my-status-applied">You're registered for this training.</div>
+      } @else if (detail.myApplication?.status === 'Waitlisted') {
+        <div class="my-status my-status-waitlisted">
+          You're on the waitlist. You'll be moved up automatically when a spot opens.
+        </div>
+      }
+
       
       <p class="detail-section-label">About this training</p>
       <p class="detail-description">{{ detail.description }}</p>
@@ -192,19 +203,62 @@
             <!-- Düğme kuralı:
           İptal edilmişse hiçbir düğme yok.
           HRManager her eğitimi düzenleyebiliyor, hiçbirine başvuramıyor.
-          Diğerleri: kendi eğitimiyse Edit, değilse Apply. -->
+          Kendi eğitimiyse Edit.
+          Geçerli başvurusu varsa (Applied / Waitlisted) Withdraw.
+          Diğer durumlarda Apply — vazgeçmiş biri de tekrar başvurabiliyor. -->
           @if (detail.status !== 'Cancelled') {
             @if (isHrManager() || detail.isOwner) {
               <button class="details-button detail-primary"
                 (click)="editTraining(detail.id)">Edit</button>
+            } @else if (hasActiveApplication(detail)) {
+              <button class="details-button detail-danger"
+                [disabled]="applying()"
+                (click)="openWithdrawConfirm()">Withdraw</button>
             } @else {
-              <button class="details-button detail-primary" (click)="applyToTraining()">
-                {{ getBadgeLabel(detail) }}
+              <button class="details-button detail-primary"
+                [disabled]="applying()"
+                (click)="applyToTraining(detail)">
+                {{ applying() ? 'Applying...' : getBadgeLabel(detail) }}
               </button>
             }
           }
       </div>
     }
+  </p-dialog>
+
+
+  <!--
+    Withdraw onay penceresi. Büyük kartla aynı yöntem: hazır başlık
+    kapalı, içerik bizim. ConfirmDialog kullanmadık — PrimeNG 22'deki
+    yazımı doğrulanamadı, bu ise zaten çalıştığını bildiğimiz yol.
+    Büyük kartın üstünde açılıyor; arkadaki pencere yerinde kalıyor.
+  -->
+  <p-dialog
+    [visible]="confirmVisible()"
+    (visibleChange)="confirmVisible.set($event)"
+    [modal]="true"
+    [showHeader]="false"
+    [dismissableMask]="true"
+    [draggable]="false"
+    [resizable]="false"
+    [style]="{ width: '420px' }">
+
+    <p class="confirm-title">Withdraw from this training?</p>
+    <p class="confirm-text">
+      Your spot will be given to the next person on the waitlist.
+      You can apply again later if there's still room.
+    </p>
+
+    <div class="detail-actions">
+      <button class="details-button detail-close"
+        [disabled]="applying()"
+        (click)="closeWithdrawConfirm()">Cancel</button>
+      <button class="details-button detail-danger"
+        [disabled]="applying()"
+        (click)="confirmWithdraw()">
+        {{ applying() ? 'Withdrawing...' : 'Withdraw' }}
+      </button>
+    </div>
   </p-dialog>
 
 
