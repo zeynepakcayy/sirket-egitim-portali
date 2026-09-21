@@ -39,8 +39,8 @@ export class Layout {
   // roles: bu maddeyi hangi roller görebilir. Boş dizi = herkes.
   private allNavItems = [
     { label: 'Dashboard',        icon: 'pi pi-home',       route: '/dashboard',         roles: [] as string[], section: 'main' },
-    { label: 'My Trainings',     icon: 'pi pi-book',       route: '/my-applications',   roles: [] as string[], section: 'main' },
-    { label: 'My Certificates',  icon: 'pi pi-verified',   route: '/my-certificates',   roles: [] as string[], section: 'main' },
+    { label: 'My Trainings',     icon: 'pi pi-book',       route: '/my-applications',   roles: ['Employee', 'Instructor'], section: 'main' },
+    { label: 'My Certificates',  icon: 'pi pi-verified',   route: '/my-certificates',   roles: ['Employee', 'Instructor'], section: 'main' },
     { label: 'Training Catalog', icon: 'pi pi-th-large',   route: '/trainings',         roles: [] as string[], section: 'main' },
     { label: 'Create Training',  icon: 'pi pi-plus-circle', route: '/trainings/create', roles: ['Instructor', 'HRManager'], section: 'main' },
     { label: 'Approvals',        icon: 'pi pi-check-square', route: '/approvals',       roles: ['HRManager'], section: 'management' }

@@ -1,0 +1,167 @@
+<div class="my-trainings-page">
+  <p class="breadcrumb">My Trainings</p>
+  <h1 class="page-title">My Trainings</h1>
+
+  <!-- Dört durum birbirini dışlıyor: yükleniyor, hata, hiç başvuru yok,
+       ya da içerik. Katalogdaki zincirle aynı mantık. -->
+  @if (loading()) {
+    <p class="state-text">Loading...</p>
+  }
+  @else if (loadError()) {
+    <div class="state-box">
+      <p class="state-title">Could not load your trainings.</p>
+      <p class="state-text">Please check your connection and try again.</p>
+      <button class="action-button" (click)="load()">Try again</button>
+    </div>
+  }
+  @else if (applications().length === 0) {
+    <!-- Hiç başvuru yoksa sayaçlar, grafik ve boş listeler anlamsız.
+         Onların yerine kullanıcıyı kataloğa yönlendiriyoruz. -->
+    <div class="state-box">
+      <p class="state-title">You haven't applied to any training yet.</p>
+      <p class="state-text">Find one that fits you in the catalog.</p>
+      <a class="action-button" routerLink="/trainings">Browse the catalog</a>
+    </div>
+  }
+  @else {
+
+    <!-- Üç sayaç -->
+    <div class="counter-row">
+      <div class="counter">
+        <p class="counter-label">Registered</p>
+        <p class="counter-value">{{ registeredCount() }}</p>
+      </div>
+      <div class="counter">
+        <p class="counter-label">On waitlist</p>
+        <p class="counter-value">{{ waitlistedCount() }}</p>
+      </div>
+      <div class="counter">
+        <p class="counter-label">Completed</p>
+        <p class="counter-value">{{ completedCount() }}</p>
+      </div>
+    </div>
+
+    <!-- Grafik. Açıklama (legend) Chart.js'in kendisinde kapalı,
+         burada HTML ile çiziyoruz: yazı tipi ve renkler sayfayla aynı olsun.
+         #chartCanvas adı .ts'deki viewChild ile eşleşiyor. -->
+    @if (hasChartData()) {
+      <div class="chart-card">
+        <p class="section-title">Your trainings by category</p>
+        <div class="chart-legend">
+          <span class="legend-item"><span class="legend-dot dot-upcoming"></span>Upcoming</span>
+          <span class="legend-item"><span class="legend-dot dot-completed"></span>Completed</span>
+          <span class="legend-item"><span class="legend-dot dot-withdrawn"></span>Withdrawn</span>
+          <span class="legend-item"><span class="legend-dot dot-cancelled"></span>Cancelled</span>
+        </div>
+        <!-- Chart.js genişliği ve yüksekliği kapsayıcıdan alıyor
+             (maintainAspectRatio: false). Yükseklik .chart-box'ta. -->
+        <div class="chart-box">
+          <canvas #chartCanvas></canvas>
+        </div>
+      </div>
+    }
+
+    <!-- Upcoming -->
+    <p class="section-title">Upcoming</p>
+    @if (upcoming().length === 0) {
+      <p class="empty-line">No upcoming trainings.</p>
+    } @else {
+      <div class="row-list">
+        @for (a of upcoming(); track a.id) {
+          <div class="row">
+            <div class="row-main">
+              <p class="row-title">{{ a.trainingTitle }}</p>
+              <p class="row-meta">
+                {{ a.startDate | date: 'd MMM y, HH:mm' }} · {{ a.location }} · {{ a.instructorName }}
+              </p>
+            </div>
+            <span class="badge" [class]="getBadgeClass(a)">{{ getBadgeLabel(a) }}</span>
+            <!-- Başlamış eğitimde Withdraw yok. Yer tutucu boşluk
+                 bırakıyoruz ki rozetler alt alta hizalı kalsın. -->
+            @if (canWithdraw(a)) {
+              <button class="action-button action-danger" (click)="openWithdraw(a)">Withdraw</button>
+            } @else {
+              <span class="action-placeholder"></span>
+            }
+          </div>
+        }
+      </div>
+    }
+
+    <!-- History. Filtreler sadece burada — uzayacak liste bu. -->
+    <div class="section-head">
+      <p class="section-title">History</p>
+      <div class="filter-bar">
+        <p-select
+          [options]="categoryOptions()"
+          [ngModel]="selectedCategory()"
+          (onChange)="selectedCategory.set($event.value)"
+          optionLabel="label"
+          optionValue="value"
+          placeholder="All categories"
+          styleClass="filter-select" />
+        <p-select
+          [options]="instructorOptions()"
+          [ngModel]="selectedInstructor()"
+          (onChange)="selectedInstructor.set($event.value)"
+          optionLabel="label"
+          optionValue="value"
+          placeholder="All instructors"
+          styleClass="filter-select" />
+      </div>
+    </div>
+
+    @if (history().length === 0) {
+      <p class="empty-line">Nothing to show here.</p>
+    } @else {
+      <div class="row-list">
+        @for (a of history(); track a.id) {
+          <!-- Vazgeçilen, iptal edilen ve katılınamayanlar soluk:
+               kişinin geçmişinde duruyor ama "yapılmış" bir şey değil. -->
+          <div class="row" [class.row-faded]="getBadgeLabel(a) !== 'Completed'">
+            <div class="row-main">
+              <p class="row-title">{{ a.trainingTitle }}</p>
+              <p class="row-meta">
+                {{ a.startDate | date: 'd MMM y' }} · {{ a.category }} · {{ a.instructorName }}
+              </p>
+            </div>
+            <span class="badge" [class]="getBadgeClass(a)">{{ getBadgeLabel(a) }}</span>
+          </div>
+        }
+      </div>
+    }
+  }
+
+
+  <!--
+    Withdraw onay penceresi. Katalogdakiyle aynı yöntem: hazır başlık
+    kapalı, içerik bizim. Açık olup olmadığını withdrawTarget belirliyor —
+    null değilse açık. Kapatılınca (dışarı tıklama dahil) null'a dönüyor.
+  -->
+  <p-dialog
+    [visible]="withdrawTarget() !== null"
+    (visibleChange)="$event ? null : closeWithdraw()"
+    [modal]="true"
+    [showHeader]="false"
+    [dismissableMask]="true"
+    [draggable]="false"
+    [resizable]="false"
+    [style]="{ width: '420px' }">
+
+    @if (withdrawTarget(); as target) {
+      <p class="confirm-title">Withdraw from {{ target.trainingTitle }}?</p>
+      <p class="confirm-text">
+        Your spot will be given to the next person on the waitlist.
+        You can apply again later if there's still room.
+      </p>
+
+      <div class="confirm-actions">
+        <button class="action-button" [disabled]="withdrawing()" (click)="closeWithdraw()">Cancel</button>
+        <button class="action-button action-danger" [disabled]="withdrawing()" (click)="confirmWithdraw()">
+          {{ withdrawing() ? 'Withdrawing...' : 'Withdraw' }}
+        </button>
+      </div>
+    }
+  </p-dialog>
+
+</div>

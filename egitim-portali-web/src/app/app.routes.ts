@@ -14,6 +14,8 @@ import { TrainingForm } from './features/trainings/training-form/training-form';
 
 import { roleGuard } from './core/guards/role.guard';
 
+import { MyTrainings } from './features/applications/my-trainings/my-trainings';
+
 export const routes: Routes = [
   //layout dışında, tam ekran açılan sayfalar
   { path: 'login', component: Login },
@@ -27,8 +29,22 @@ export const routes: Routes = [
     canActivate: [authGuard],
     children: [
       { path: 'dashboard', component: Dashboard },
-      { path: 'my-applications', component: Dashboard },
-      { path: 'my-certificates', component: Dashboard },
+
+      // Menüde gizlemek koruma sağlamaz, adres elle yazılabiliyor.
+      // HRManager başvuru yapamadığı için bu iki sayfa ona kapalı.
+      {
+        path: 'my-applications',
+        component: MyTrainings,
+        canActivate: [roleGuard],
+        data: { roles: ['Employee', 'Instructor'] }
+      },
+      {
+        path: 'my-certificates',
+        component: Dashboard,
+        canActivate: [roleGuard],
+        data: { roles: ['Employee', 'Instructor'] }
+      },
+
       { path: 'trainings', component: TrainingCatalog },
             // Rol kontrolü: menüde düğmeyi gizlemek koruma sağlamaz,
       // adres elle yazılabiliyor.

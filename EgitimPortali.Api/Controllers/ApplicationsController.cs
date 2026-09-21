@@ -15,6 +15,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
+using EgitimPortali.Api.Helpers;
 
 namespace EgitimPortali.Api.Controllers;
 
@@ -182,9 +183,19 @@ public class ApplicationsController : ControllerBase
                 Status = a.Status.ToString(),
                 AppliedAt = a.AppliedAt,
                 // Ham değer; görünen durum aşağıda hesaplanıyor.
-                TrainingStatus = a.Training.Status.ToString()
+                TrainingStatus = a.Training.Status.ToString(),
+                TrainingStatusRaw = a.Training.Status
             })
             .ToListAsync();
+
+            
+            // Select veritabanında çalıştığı için hesaplamayı burada yapıyoruz.
+            // Katalogdaki GetTrainings ile aynı yöntem.
+            foreach (var item in items)
+            {
+                item.TrainingStatus = TrainingStatusHelper.GetDisplayStatus(
+                    item.TrainingStatusRaw, item.StartDate, item.EndDate);
+            }
 
         return Ok(items);
     }

@@ -1,0 +1,294 @@
+/* Sayfanın kendisi. Katalogdaki .catalog-page ile aynı iç boşluk. */
+.my-trainings-page {
+  padding: 1.5rem;
+}
+
+.breadcrumb {
+  color: var(--p-text-muted-color);
+  font-size: 0.875rem;
+  margin: 0;
+}
+
+.page-title {
+  font-size: 1.875rem;
+  font-weight: 700;
+  margin: 0.25rem 0 1.5rem 0;
+}
+
+/* ---- Yükleniyor / hata / boş durumlar ---- */
+
+.state-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 4rem 1.5rem;
+  background: var(--p-surface-800);
+  border: 1px solid var(--p-surface-700);
+  border-radius: 8px;
+}
+
+.state-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin: 0 0 0.5rem 0;
+}
+
+.state-text {
+  color: var(--p-text-muted-color);
+  font-size: 0.9375rem;
+  margin: 0 0 1.5rem 0;
+}
+
+/* ---- Sayaçlar ---- */
+
+/* Üç eşit kutu yan yana. Dar ekranda alta sarıyor. */
+.counter-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.counter {
+  background: var(--p-surface-800);
+  border: 1px solid var(--p-surface-700);
+  border-radius: 8px;
+  padding: 1rem 1.25rem;
+}
+
+.counter-label {
+  color: var(--p-text-muted-color);
+  font-size: 0.875rem;
+  margin: 0 0 0.25rem 0;
+}
+
+.counter-value {
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+/* ---- Grafik ---- */
+
+.chart-card {
+  background: var(--p-surface-800);
+  border: 1px solid var(--p-surface-700);
+  border-radius: 8px;
+  padding: 1.25rem;
+  margin-bottom: 2rem;
+
+  .section-title {
+    margin-top: 0;
+  }
+}
+
+.chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+  margin-bottom: 0.75rem;
+}
+
+.legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--p-text-muted-color);
+}
+
+.legend-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+}
+
+/* Renkler .ts'deki colors nesnesiyle birebir aynı olmalı —
+   biri değişirse ötekini de değiştir. */
+.dot-upcoming  { background: #1ED99A; }
+.dot-completed { background: #3B82F6; }
+.dot-withdrawn { background: #F59E0B; }
+.dot-cancelled { background: #EF4444; }
+
+/* Chart.js yüksekliği kapsayıcıdan alıyor (maintainAspectRatio: false).
+   position: relative Chart.js'in kendi belgelerinde şart koşuluyor —
+   olmazsa grafik pencere boyutu değişince yanlış ölçülüyor. */
+.chart-box {
+  position: relative;
+  height: 240px;
+}
+
+/* ---- Bölüm başlıkları ---- */
+
+.section-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin: 0 0 0.75rem 0;
+}
+
+/* History başlığı solda, filtreler sağda. */
+.section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin: 2rem 0 0.75rem 0;
+
+  .section-title {
+    margin: 0;
+  }
+}
+
+.filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+:host ::ng-deep .filter-select {
+  width: 200px;
+}
+
+.empty-line {
+  color: var(--p-text-muted-color);
+  font-size: 0.9375rem;
+  margin: 0 0 1rem 0;
+}
+
+/* ---- Satırlar ---- */
+
+/* Kart değil, çizgiyle ayrılmış satırlar: liste uzadığında
+   kartlar çok yer kaplıyor ve göz yoruyor. */
+.row-list {
+  border-top: 1px solid var(--p-surface-700);
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.875rem 0.25rem;
+  border-bottom: 1px solid var(--p-surface-700);
+}
+
+/* Vazgeçilen, iptal edilen, katılınamayan */
+.row-faded {
+  opacity: 0.6;
+}
+
+/* min-width: 0 — uzun başlıklar satırı taşırmasın */
+.row-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.row-title {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0 0 0.25rem 0;
+}
+
+.row-meta {
+  color: var(--p-text-muted-color);
+  font-size: 0.875rem;
+  margin: 0;
+}
+
+/* ---- Rozetler ---- */
+
+/* Genişlik sabit: farklı uzunluktaki rozetler alt alta hizalı dursun. */
+.badge {
+  flex-shrink: 0;
+  min-width: 96px;
+  text-align: center;
+  border-radius: 4px;
+  padding: 0.25rem 0.625rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* Grafikle aynı dört renk. Parlak zeminlerde koyu yazı,
+   mavi ve kırmızıda beyaz yazı — ikisi de okunaklı. */
+.badge-upcoming  { background: #1ED99A; color: #053B2A; }
+.badge-completed { background: #3B82F6; color: #FFFFFF; }
+.badge-withdrawn { background: #F59E0B; color: #3B2400; }
+.badge-cancelled { background: #EF4444; color: #FFFFFF; }
+
+/* Yedek liste: katalogdaki "Apply for Waitlist" rozetiyle aynı —
+   kullanıcı bu rengi zaten "yedek" olarak tanıyor. */
+.badge-waitlisted { background: #7A5A12; color: #FBECCB; }
+
+/* Katılınamayan (bitmiş eğitimde yedekte kalmış) */
+.badge-muted { background: var(--p-surface-600); color: var(--p-text-color); }
+
+/* ---- Düğmeler ---- */
+
+/* Katalogdaki .details-button ile aynı üslup. <a> etiketi de
+   kullanıyor (Browse the catalog), o yüzden alt çizgiyi kapatıyoruz. */
+.action-button {
+  flex-shrink: 0;
+  display: inline-block;
+  padding: 0.4rem 1rem;
+  background: transparent;
+  border: 1px solid var(--p-surface-600);
+  border-radius: 6px;
+  color: var(--p-text-color);
+  font-size: 0.875rem;
+  text-decoration: none;
+  cursor: pointer;
+
+  &:hover {
+    background: var(--p-surface-700);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+}
+
+/* Geri alınamayan eylem */
+.action-danger {
+  border-color: #b04444;
+  color: #f0b4b4;
+
+  &:hover {
+    background: #3a1c1c;
+  }
+}
+
+/* Withdraw olmayan satırda aynı genişlikte boşluk —
+   rozetler sağa kaymasın. Withdraw düğmesinin yaklaşık genişliği. */
+.action-placeholder {
+  flex-shrink: 0;
+  width: 92px;
+}
+
+/* ---- Onay penceresi ---- */
+
+:host ::ng-deep .p-dialog-content {
+  padding: 1.5rem;
+}
+
+.confirm-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin: 0 0 0.75rem 0;
+}
+
+.confirm-text {
+  color: var(--p-text-muted-color);
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 1.5rem;
+}
