@@ -109,6 +109,7 @@
 .dot-upcoming  { background: #1ED99A; }
 .dot-completed { background: #3B82F6; }
 .dot-withdrawn { background: #F59E0B; }
+.dot-removed   { background: #A855F7; }
 .dot-cancelled { background: #EF4444; }
 
 /* Chart.js yüksekliği kapsayıcıdan alıyor (maintainAspectRatio: false).
@@ -215,6 +216,7 @@
 .badge-upcoming  { background: #1ED99A; color: #053B2A; }
 .badge-completed { background: #3B82F6; color: #FFFFFF; }
 .badge-withdrawn { background: #F59E0B; color: #3B2400; }
+.badge-removed   { background: #A855F7; color: #FFFFFF; }
 .badge-cancelled { background: #EF4444; color: #FFFFFF; }
 
 /* Yedek liste: katalogdaki "Apply for Waitlist" rozetiyle aynı —

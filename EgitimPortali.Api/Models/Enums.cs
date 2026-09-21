@@ -16,14 +16,20 @@ Başvuran anında kaydolur; kontenjan doluysa yedek listeye düşer.
 Kişi başvurusunu geri çekerse Cancelled olur, kayıt silinmez —
 geçmiş kaybolmasın ve katılımcı listesinde "vazgeçti" görünsün diye.
 
+Removed: kişiyi eğitmen ya da HR listeden çıkardı. Cancelled'dan
+ayrı tutuluyor çünkü kişi kendi sayfasında "ben vazgeçtim" değil
+"çıkarıldım" görmeli. Çıkarılan kişi aynı eğitime tekrar başvuramaz.
+
 Veritabanında sayı olarak saklanıyor: Applied = 0, Waitlisted = 1,
-Cancelled = 2. SIRA ASLA DEĞİŞTİRİLMEMELİ.
+Cancelled = 2, Removed = 3. SIRA ASLA DEĞİŞTİRİLMEMELİ —
+yeni değerler sadece sona eklenir.
 */
 public enum ApplicationStatus
 {
     Applied,
     Waitlisted,
-    Cancelled
+    Cancelled,
+    Removed
 }
 public enum AttendanceStatus
 {

@@ -16,6 +16,8 @@ import { roleGuard } from './core/guards/role.guard';
 
 import { MyTrainings } from './features/applications/my-trainings/my-trainings';
 
+import { Participants } from './features/applications/participants/participants';
+
 export const routes: Routes = [
   //layout dışında, tam ekran açılan sayfalar
   { path: 'login', component: Login },
@@ -63,7 +65,16 @@ export const routes: Routes = [
       // Düzenleme aynı bileşeni kullanıyor. :id bir yer tutucu —
       // adresteki gerçek değer bileşen içinde okunacak.
       { path: 'trainings/:id/edit', component: TrainingForm },
-      { path: 'approvals', component: Dashboard },
+
+      // Onay akışı kaldırılınca Approvals sayfası anlamını yitirdi,
+      // yerine katılımcı yönetimi geldi. Employee'ye kapalı.
+      {
+        path: 'participants',
+        component: Participants,
+        canActivate: [roleGuard],
+        data: { roles: ['Instructor', 'HRManager'] }
+      },
+      
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' }
     ]
   },

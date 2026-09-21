@@ -43,7 +43,8 @@ export class Layout {
     { label: 'My Certificates',  icon: 'pi pi-verified',   route: '/my-certificates',   roles: ['Employee', 'Instructor'], section: 'main' },
     { label: 'Training Catalog', icon: 'pi pi-th-large',   route: '/trainings',         roles: [] as string[], section: 'main' },
     { label: 'Create Training',  icon: 'pi pi-plus-circle', route: '/trainings/create', roles: ['Instructor', 'HRManager'], section: 'main' },
-    { label: 'Approvals',        icon: 'pi pi-check-square', route: '/approvals',       roles: ['HRManager'], section: 'management' }
+    // Approvals'ın yerini aldı. Instructor kendi eğitimlerini, HR hepsini görüyor.
+    { label: 'Participants',     icon: 'pi pi-users',       route: '/participants',     roles: ['Instructor', 'HRManager'], section: 'management' }
   ];
 
   // Kullanıcının rolüne göre ana menü

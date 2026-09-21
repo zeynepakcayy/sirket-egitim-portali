@@ -1,0 +1,168 @@
+<div class="participants-page">
+  <p class="breadcrumb">Management</p>
+  <h1 class="page-title">Participants</h1>
+
+  @if (loadingTrainings()) {
+    <p class="state-text">Loading...</p>
+  }
+  @else if (trainings().length === 0) {
+    <!-- Instructor henüz hiç eğitim açmamışsa seçicide gösterecek bir şey yok. -->
+    <div class="state-box">
+      <p class="state-title">No trainings to manage yet.</p>
+      <p class="state-text">Trainings you create will appear here with their participants.</p>
+    </div>
+  }
+  @else {
+
+    <!-- Eğitim seçici. Aramalı: HR'ın listesi uzayabilir. -->
+    <div class="field">
+      <label for="training">Training</label>
+      <p-select
+        inputId="training"
+        [options]="trainingOptions()"
+        [ngModel]="selectedTrainingId()"
+        (onChange)="selectTraining($event.value)"
+        optionLabel="label"
+        optionValue="value"
+        [filter]="true"
+        filterBy="label"
+        filterPlaceholder="Search training"
+        styleClass="training-select" />
+    </div>
+
+    @if (loadingParticipants()) {
+      <p class="state-text">Loading...</p>
+    }
+    @else if (loadError()) {
+      <div class="state-box">
+        <p class="state-title">Could not load participants.</p>
+        <p class="state-text">Please check your connection and try again.</p>
+        <button class="action-button" (click)="loadParticipants()">Try again</button>
+      </div>
+    }
+    @else if (list(); as l) {
+
+      <!-- Üç sayaç. İlki kapasiteyle birlikte: doluluk tek bakışta. -->
+      <div class="counter-row">
+        <div class="counter">
+          <p class="counter-label">Registered</p>
+          <p class="counter-value">{{ registered().length }} / {{ l.capacity }}</p>
+        </div>
+        <div class="counter">
+          <p class="counter-label">Waitlist</p>
+          <p class="counter-value">{{ waitlist().length }}</p>
+        </div>
+        <div class="counter">
+          <p class="counter-label">Withdrawn or removed</p>
+          <p class="counter-value">{{ inactive().length }}</p>
+        </div>
+      </div>
+
+      <!-- Registered -->
+      <p class="section-title">Registered</p>
+      @if (registered().length === 0) {
+        <p class="empty-line">No one has registered yet.</p>
+      } @else {
+        <div class="row-list">
+          @for (p of registered(); track p.applicationId) {
+            <div class="row">
+              <div class="row-main">
+                <p class="row-title">{{ p.fullName }}</p>
+                <p class="row-meta">
+                  {{ p.email }}@if (p.department) { · {{ p.department }} }
+                </p>
+              </div>
+              <span class="row-date">{{ p.appliedAt | date: 'd MMM' }}</span>
+              <span class="badge badge-registered">Registered</span>
+              @if (canRemove()) {
+                <button class="action-button action-danger" (click)="openRemove(p)">Remove</button>
+              }
+            </div>
+          }
+        </div>
+      }
+
+      <!-- Waitlist. Sıra numarası $index'ten geliyor: backend başvuru
+           tarihine göre sıralı gönderiyor, 1 numara ilk terfi edecek kişi. -->
+      <p class="section-title section-gap">Waitlist</p>
+      @if (waitlist().length === 0) {
+        <p class="empty-line">The waitlist is empty.</p>
+      } @else {
+        <div class="row-list">
+          @for (p of waitlist(); track p.applicationId; let i = $index) {
+            <div class="row">
+              <span class="row-position">{{ i + 1 }}</span>
+              <div class="row-main">
+                <p class="row-title">{{ p.fullName }}</p>
+                <p class="row-meta">
+                  {{ p.email }}@if (p.department) { · {{ p.department }} }
+                </p>
+              </div>
+              <span class="row-date">{{ p.appliedAt | date: 'd MMM' }}</span>
+              <span class="badge badge-waitlisted">Waitlisted</span>
+              @if (canRemove()) {
+                <button class="action-button action-danger" (click)="openRemove(p)">Remove</button>
+              }
+            </div>
+          }
+        </div>
+      }
+
+      <!-- Artık listede olmayanlar. Soluk ve düğmesiz: geçmiş bilgisi,
+           üzerinde yapılacak bir işlem yok. -->
+      @if (inactive().length > 0) {
+        <p class="section-title section-gap">Withdrawn or removed</p>
+        <div class="row-list">
+          @for (p of inactive(); track p.applicationId) {
+            <div class="row row-faded">
+              <div class="row-main">
+                <p class="row-title">{{ p.fullName }}</p>
+                <p class="row-meta">
+                  {{ p.email }}@if (p.department) { · {{ p.department }} }
+                </p>
+              </div>
+              <span class="row-date">{{ p.appliedAt | date: 'd MMM' }}</span>
+              <span class="badge" [class]="inactiveClass(p)">{{ inactiveLabel(p) }}</span>
+            </div>
+          }
+        </div>
+      }
+
+      <!-- Başlamış ya da iptal edilmiş eğitimde neden Remove olmadığını açıkla. -->
+      @if (!canRemove()) {
+        <p class="hint">Participants can only be removed before the training starts.</p>
+      }
+    }
+  }
+
+
+  <!-- Çıkarma onayı. My Trainings'teki Withdraw penceresiyle aynı yöntem. -->
+  <p-dialog
+    [visible]="removeTarget() !== null"
+    (visibleChange)="$event ? null : closeRemove()"
+    [modal]="true"
+    [showHeader]="false"
+    [dismissableMask]="true"
+    [draggable]="false"
+    [resizable]="false"
+    [style]="{ width: '420px' }">
+
+    @if (removeTarget(); as target) {
+      <p class="confirm-title">Remove {{ target.fullName }}?</p>
+      <p class="confirm-text">
+        They will be notified in their own My Trainings page and won't be able to apply again.
+        @if (target.status === 'Applied') {
+          The first person on the waitlist will take their spot.
+        }
+      </p>
+
+      <div class="confirm-actions">
+        <button class="action-button" [disabled]="removing()" (click)="closeRemove()">Cancel</button>
+        <button class="action-button action-danger" [disabled]="removing()" (click)="confirmRemove()">
+          {{ removing() ? 'Removing...' : 'Remove' }}
+        </button>
+      </div>
+    }
+  </p-dialog>
+
+</div>

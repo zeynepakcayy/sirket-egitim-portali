@@ -16,6 +16,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 using EgitimPortali.Api.Helpers;
+using EgitimPortali.Api.Helpers;
 
 namespace EgitimPortali.Api.Controllers;
 
@@ -60,11 +61,19 @@ public class ApplicationsController : ControllerBase
         if (training.InstructorUserId == userId)
             return BadRequest("You cannot apply to your own training.");
 
+
         var existing = training.Applications.FirstOrDefault(a => a.UserId == userId);
+
+        // Listeden çıkarılan kişi tekrar başvuramaz — yoksa çıkarmanın
+        // anlamı kalmazdı. Bu kontrol aşağıdakinden ÖNCE olmalı:
+        // sonra olsaydı kişi yanlışlıkla "zaten başvurdun" mesajı görürdü.
+        if (existing != null && existing.Status == ApplicationStatus.Removed)
+            return BadRequest("You were removed from this training by the organizer.");
 
         if (existing != null && existing.Status != ApplicationStatus.Cancelled)
             return BadRequest("You have already applied to this training.");
-
+        
+        
         /*
         Kontenjan kontrolü. Sadece Applied olanlar sayılıyor —
         yedektekiler yer kaplamıyor, vazgeçenler zaten çıkmış.
@@ -121,9 +130,14 @@ public class ApplicationsController : ControllerBase
         if (application == null)
             return NotFound();
 
-        if (application.Status == ApplicationStatus.Cancelled)
-            return BadRequest("You have already withdrawn from this training.");
-
+        
+        // Çıkarılmış kişinin geri çekecek bir kaydı yok. Bu kontrol
+        // olmasaydı durumu Removed'dan Cancelled'a çevrilir, "çıkarıldı"
+        // bilgisi kaybolur ve kişi tekrar başvurabilir hale gelirdi.
+        if (application.Status == ApplicationStatus.Removed)
+            return BadRequest("You were removed from this training by the organizer.");
+        
+        
         // Yer açılıyor mu, yoksa yedekteki biri mi çıkıyor?
         // Sadece kayıtlı biri çıkarsa yedekten terfi gerekiyor.
         var wasEnrolled = application.Status == ApplicationStatus.Applied;
@@ -132,23 +146,10 @@ public class ApplicationsController : ControllerBase
         // listesinde "vazgeçti" olarak görünmeli.
         application.Status = ApplicationStatus.Cancelled;
 
+        // Kayıtlı biri ayrıldıysa yedekteki en eski başvuran yukarı çıkıyor.
+        // Mantık WaitlistHelper'da — Participants'taki çıkarma da aynısını kullanıyor.
         if (wasEnrolled)
-        {
-            /*
-            Yedek listeden terfi. En eski başvuran yukarı çıkıyor —
-            AppliedAt bu yüzden tutuluyor.
-
-            OrderBy şart: sıra belirsiz olsaydı her seferinde
-            farklı biri terfi edebilirdi.
-            */
-            var next = await _context.Applications
-                .Where(a => a.TrainingId == trainingId && a.Status == ApplicationStatus.Waitlisted)
-                .OrderBy(a => a.AppliedAt)
-                .FirstOrDefaultAsync();
-
-            if (next != null)
-                next.Status = ApplicationStatus.Applied;
-        }
+            await WaitlistHelper.PromoteNextAsync(_context, trainingId);
 
         await _context.SaveChangesAsync();
         return NoContent();

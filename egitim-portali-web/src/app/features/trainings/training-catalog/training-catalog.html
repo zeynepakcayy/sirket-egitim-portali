@@ -181,6 +181,10 @@
         <div class="my-status my-status-waitlisted">
           You're on the waitlist. You'll be moved up automatically when a spot opens.
         </div>
+      } @else if (detail.myApplication?.status === 'Removed') {
+        <div class="my-status my-status-removed">
+          You were removed from this training by the organizer.
+        </div>
       }
 
       
@@ -210,7 +214,11 @@
             @if (isHrManager() || detail.isOwner) {
               <button class="details-button detail-primary"
                 (click)="editTraining(detail.id)">Edit</button>
-            } @else if (hasActiveApplication(detail)) {
+            } @else if (detail.myApplication?.status === 'Removed') {
+                <!-- Çıkarılan kişi tekrar başvuramıyor: düğme yok.
+                 Backend de reddediyor, burası sadece boşuna
+                basılacak bir düğme göstermemek için. -->
+            }@else if (hasActiveApplication(detail)) {
               <button class="details-button detail-danger"
                 [disabled]="applying()"
                 (click)="openWithdrawConfirm()">Withdraw</button>

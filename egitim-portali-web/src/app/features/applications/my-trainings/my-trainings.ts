@@ -28,7 +28,7 @@ Bir başvurunun sayfadaki yeri. İki ayrı alandan (başvuru durumu +
 eğitim durumu) tek bir karar üretiyoruz, liste de grafik de sayaçlar da
 buna bakıyor — böylece üçü birbiriyle hiç çelişmiyor.
 */
-type Group = 'upcoming' | 'completed' | 'withdrawn' | 'cancelled' | 'notEnrolled';
+type Group = 'upcoming' | 'completed' | 'withdrawn' | 'removed' | 'cancelled' | 'notEnrolled';
 
 @Component({
   selector: 'app-my-trainings',
@@ -64,6 +64,7 @@ export class MyTrainings implements OnInit, OnDestroy {
     upcoming: '#1ED99A',
     completed: '#3B82F6',
     withdrawn: '#F59E0B',
+    removed: '#A855F7',
     cancelled: '#EF4444'
   };
 
@@ -76,6 +77,7 @@ export class MyTrainings implements OnInit, OnDestroy {
   sonra eğitim iptal edilse bile onun açısından karar zaten verilmişti.
   */
   groupOf(a: ApplicationListItem): Group {
+    if (a.status === 'Removed') return 'removed';
     if (a.status === 'Cancelled') return 'withdrawn';
     if (a.trainingStatus === 'Cancelled') return 'cancelled';
     if (a.trainingStatus === 'Completed') {
@@ -185,6 +187,7 @@ export class MyTrainings implements OnInit, OnDestroy {
           dataset('Upcoming', 'upcoming', this.colors.upcoming),
           dataset('Completed', 'completed', this.colors.completed),
           dataset('Withdrawn', 'withdrawn', this.colors.withdrawn),
+          dataset('Removed', 'removed', this.colors.removed),
           dataset('Cancelled', 'cancelled', this.colors.cancelled)
         ]
       },
@@ -242,6 +245,7 @@ export class MyTrainings implements OnInit, OnDestroy {
   getBadgeLabel(a: ApplicationListItem): string {
     switch (this.groupOf(a)) {
       case 'withdrawn': return 'Withdrawn';
+      case 'removed': return 'Removed'; 
       case 'cancelled': return 'Cancelled';
       case 'completed': return 'Completed';
       case 'notEnrolled': return 'Not enrolled';
@@ -254,6 +258,7 @@ export class MyTrainings implements OnInit, OnDestroy {
   getBadgeClass(a: ApplicationListItem): string {
     switch (this.groupOf(a)) {
       case 'withdrawn': return 'badge-withdrawn';
+      case 'removed': return 'badge-removed';
       case 'cancelled': return 'badge-cancelled';
       case 'completed': return 'badge-completed';
       case 'notEnrolled': return 'badge-muted';
