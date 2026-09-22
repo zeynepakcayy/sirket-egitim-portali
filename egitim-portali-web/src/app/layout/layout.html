@@ -13,17 +13,26 @@
         <input pInputText type="text" placeholder="Search..." />
       </span>
 
-      <!-- BİLDİRİM — şimdilik işlevsiz -->
-      <button class="navbar-icon-btn" type="button" aria-label="Notifications">
-        <i class="pi pi-bell"></i>
-      </button>
+      <!-- BİLDİRİM — rozet, açılır panel ve okundu işaretleme
+           bileşenin kendi içinde. Buradan yönetilmiyor. -->
+      <app-notification-bell />
 
-      <!-- AVATAR + MENÜ -->
-      <p-avatar
-        [label]="initials()"
-        shape="circle"
-        styleClass="navbar-avatar"
-        (click)="userMenu.toggle($event)" />
+      <!-- AVATAR + MENÜ
+           Ad soyad avatar'ın soluna geldi. Tıklama alanı artık
+           ikisini birden kapsıyor: isme de basınca menü açılıyor. -->
+      <button
+        class="navbar-user"
+        type="button"
+        aria-label="User menu"
+        (click)="userMenu.toggle($event)">
+
+        <span class="navbar-user-name">{{ currentUser()?.fullName }}</span>
+
+        <p-avatar
+          [label]="initials()"
+          shape="circle"
+          styleClass="navbar-avatar" />
+      </button>
 
       <p-menu #userMenu [model]="userMenuItems" [popup]="true" />
 

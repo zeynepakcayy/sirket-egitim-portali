@@ -7,9 +7,11 @@ import {Menu} from 'primeng/menu';
 import {InputText} from 'primeng/inputtext';
 import {AuthService} from '../core/services/auth.service';
 
+import { NotificationBell } from './notification-bell/notification-bell';
+
 @Component({
   selector: 'app-layout',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, Avatar, Menu, InputText],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, Avatar, Menu, InputText, NotificationBell],
   templateUrl: './layout.html',
   styleUrl: './layout.scss'
 })

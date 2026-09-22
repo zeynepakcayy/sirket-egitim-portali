@@ -1,0 +1,295 @@
+/*
+Renkler PrimeNG tema değişkenlerinden geliyor. Sabit hex yazsaydık
+tema değiştiğinde panel eski renkte kalırdı; bir de rozetin çerçevesi
+navbar zemininin AYNISI olmak zorunda — değişken bunu garantiliyor.
+
+İki renk sabit kaldı: rozetin kırmızısı ve okunmamış noktası.
+Tema nötr gri-siyah, "dikkat çek" anlamı taşıyan bir rengi yok.
+Bunlar anlam taşıyan renkler, zemin rengi değil.
+*/
+$attention: #cf4529;   // rozet
+$unread-dot: #e0603f;  // okunmamış noktası
+$negative: #e0603f;    // iptal, çıkarılma
+$positive: #5fb87a;    // terfi, sertifika
+
+:host {
+  display: inline-flex;
+}
+
+.bell-wrapper {
+  position: relative;
+  display: inline-flex;
+}
+
+
+/* ---------- zil düğmesi ---------- */
+
+/*
+Ölçüler layout.scss'teki .navbar-icon-btn ile aynı: yuvarlak,
+çerçevesiz, aynı iç boşluk. Navbar'daki diğer ikon düğmeleriyle
+aynı görünmesi için.
+*/
+.bell-button {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem;
+  background: transparent;
+  border: none;
+  border-radius: 50%;
+  color: var(--p-text-muted-color);
+  font-size: 1.1rem;
+  cursor: pointer;
+
+  /*
+  Panel açıkken düğme vurgulu kalıyor — kullanıcı panelin
+  nereden açıldığını görüyor.
+  */
+  &:hover,
+  &.is-open {
+    background: var(--p-surface-800);
+    color: var(--p-text-color);
+  }
+}
+
+.bell-badge {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  min-width: 18px;
+  height: 18px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 5px;
+  background: $attention;
+  /* Çerçeve navbar zemininde: rozet ikonun üstüne binmiş
+     görünmesin, araya boşluk girsin diye. */
+  border: 2px solid var(--p-surface-900);
+  border-radius: 9px;
+  color: #ffffff;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+
+/* ---------- panel ---------- */
+
+.panel {
+  position: absolute;
+  /* Zilin hemen altında, sağa yaslı. */
+  top: calc(100% + 10px);
+  right: 0;
+  width: 380px;
+  /* İçerik alanı surface-950; panel bir ton açık olmalı ki
+     üstünde yüzüyor gibi görünsün. */
+  background: var(--p-surface-900);
+  border: 1px solid var(--p-surface-700);
+  border-radius: 12px;
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.6);
+  overflow: hidden;
+  /* Sayfa içeriğinin üstünde kalmalı. */
+  z-index: 100;
+}
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 0.875rem;
+  border-bottom: 1px solid var(--p-surface-700);
+}
+
+.panel-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--p-text-color);
+}
+
+.mark-all {
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  padding: 4px 6px;
+  color: var(--p-text-muted-color);
+  font-size: 0.78125rem;
+  font-family: inherit;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    background: var(--p-surface-800);
+    color: var(--p-text-color);
+  }
+
+  /*
+  Koyu temada tarayıcı disabled elemanları yarı saydam yapıyor
+  ve okunmaz hale geliyor. Rengi elle veriyoruz — bu tuzağı
+  formda da yaşamıştık.
+  */
+  &:disabled {
+    opacity: 1;
+    color: var(--p-surface-600);
+    cursor: default;
+  }
+}
+
+
+/* ---------- liste ---------- */
+
+.panel-list {
+  max-height: 400px;
+  overflow-y: auto;
+
+  &::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: var(--p-surface-700);
+    border-radius: 4px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+}
+
+.row {
+  width: 100%;
+  display: flex;
+  gap: 0.625rem;
+  align-items: flex-start;
+  padding: 0.75rem 0.875rem;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--p-surface-800);
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  &:hover {
+    background: var(--p-surface-800);
+  }
+}
+
+.row-dot {
+  width: 6px;
+  flex-shrink: 0;
+  padding-top: 11px;
+}
+
+.dot {
+  display: block;
+  width: 6px;
+  height: 6px;
+  border-radius: 3px;
+  background: $unread-dot;
+}
+
+/*
+İkon kutusunun rengi. Tonlu zeminler yarı saydam (rgba) —
+böylece arkasındaki yüzey rengi ne olursa olsun uyum sağlıyor,
+tema değişse de bozulmuyor.
+*/
+.row-icon {
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--p-surface-800);
+  border-radius: 8px;
+  color: var(--p-text-muted-color);
+
+  i {
+    font-size: 0.875rem;
+  }
+
+  &.tone-negative {
+    background: rgba(224, 96, 63, 0.14);
+    color: $negative;
+  }
+
+  &.tone-positive {
+    background: rgba(95, 184, 122, 0.14);
+    color: $positive;
+  }
+}
+
+.row-text {
+  flex-grow: 1;
+  /* min-width: 0 şart: uzun metin esnek kutuyu taşırmasın. */
+  min-width: 0;
+}
+
+.row-message {
+  display: block;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  color: var(--p-text-color);
+
+  /* Okunmuş satırın yazısı bir ton soluk. */
+  &.row-read {
+    color: var(--p-text-muted-color);
+  }
+}
+
+.row-time {
+  display: block;
+  font-size: 0.71875rem;
+  color: var(--p-text-muted-color);
+  margin-top: 4px;
+}
+
+
+/* ---------- özel durumlar ---------- */
+
+.panel-state {
+  padding: 1.75rem 1.25rem;
+  text-align: center;
+  font-size: 0.8125rem;
+  color: var(--p-text-muted-color);
+}
+
+.panel-empty {
+  padding: 2.375rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  text-align: center;
+}
+
+.empty-icon {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--p-surface-800);
+  border-radius: 22px;
+  color: var(--p-text-muted-color);
+
+  i {
+    font-size: 1.3125rem;
+  }
+}
+
+.empty-title {
+  font-size: 0.84375rem;
+  color: var(--p-text-color);
+}
+
+.empty-hint {
+  font-size: 0.75rem;
+  color: var(--p-text-muted-color);
+  line-height: 1.5;
+}

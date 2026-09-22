@@ -57,6 +57,32 @@ public class NotificationService
             .ToListAsync();
     }
 
+    /*
+    Eğitimdeki bir değişiklikten haberdar olması gerekenler.
+
+    Katılımcılara EK OLARAK eğitimi açan kişi de listede: HRManager
+    başkasının eğitimini düzenleyebiliyor ve o durumda eğitmenin
+    haberi olmuyordu.
+
+    Değişikliği YAPAN kişi listeden çıkarılıyor — kendi yaptığı şeyi
+    ona haber vermenin anlamı yok. Eğitmen kendi eğitimini
+    güncellediğinde kendine bildirim almıyor.
+
+    Distinct savunma amaçlı: eğitmen kendi eğitimine başvuramadığı
+    için normalde iki kez listede olamaz, ama olsaydı iki bildirim
+    giderdi.
+    */
+    private async Task<List<Guid>> GetTrainingAudienceAsync(Training training, Guid actorUserId)
+    {
+        var userIds = await GetActiveParticipantIdsAsync(training.Id);
+        userIds.Add(training.InstructorUserId);
+
+        return userIds
+            .Where(id => id != actorUserId)
+            .Distinct()
+            .ToList();
+    }
+
     // UTC saati Türkiye saatine çevirip "09:30" biçiminde döndürür.
     private static string LocalTimeText(DateTime utcDate)
     {
@@ -67,12 +93,16 @@ public class NotificationService
 
     // ---------------- olaylar ----------------
 
-    // Eğitimin tarihi, saati veya konumu değişti.
-    // Hangi değişikliğin "güncelleme" sayılacağına controller karar veriyor;
-    // buraya gelindiyse zaten bildirim gönderilecek demektir.
-    public async Task TrainingUpdatedAsync(Training training)
+    /*
+    Eğitimin tarihi, saati veya konumu değişti.
+    Hangi değişikliğin "güncelleme" sayılacağına controller karar veriyor;
+    buraya gelindiyse zaten bildirim gönderilecek demektir.
+
+    actorUserId: değişikliği yapan kişi. Ona bildirim gitmiyor.
+    */
+    public async Task TrainingUpdatedAsync(Training training, Guid actorUserId)
     {
-        var userIds = await GetActiveParticipantIdsAsync(training.Id);
+        var userIds = await GetTrainingAudienceAsync(training, actorUserId);
         var message = $"{training.Title} has been updated. Please check the new date, time or location.";
 
         foreach (var userId in userIds)
@@ -81,10 +111,10 @@ public class NotificationService
         }
     }
 
-    // Eğitim iptal edildi.
-    public async Task TrainingCancelledAsync(Training training)
+    // Eğitim iptal edildi. actorUserId: iptal eden kişi, ona gitmiyor.
+    public async Task TrainingCancelledAsync(Training training, Guid actorUserId)
     {
-        var userIds = await GetActiveParticipantIdsAsync(training.Id);
+        var userIds = await GetTrainingAudienceAsync(training, actorUserId);
         var message = $"{training.Title} has been cancelled.";
 
         foreach (var userId in userIds)

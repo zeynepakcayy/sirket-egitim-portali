@@ -1,0 +1,84 @@
+<div class="bell-wrapper">
+
+  <button
+    type="button"
+    class="bell-button"
+    [class.is-open]="panelOpen()"
+    aria-label="Notifications"
+    (click)="togglePanel()">
+
+    <i class="pi pi-bell"></i>
+
+    @if (unreadCount() > 0) {
+      <span class="bell-badge">{{ badgeLabel() }}</span>
+    }
+  </button>
+
+
+  @if (panelOpen()) {
+    <div class="panel">
+
+      <div class="panel-header">
+        <span class="panel-title">Notifications</span>
+
+        <!-- Okunmamış yoksa düğme soluk ve tıklanamaz duruyor.
+             Yapacak işi olmayan bir düğmenin aktif görünmesi yanıltıcı. -->
+        <button
+          type="button"
+          class="mark-all"
+          [disabled]="unreadCount() === 0"
+          (click)="markAllAsRead()">
+          Mark all read
+        </button>
+      </div>
+
+      <div class="panel-list">
+
+        @if (loading()) {
+          <div class="panel-state">Loading...</div>
+        }
+        @else if (loadError()) {
+          <div class="panel-state">Could not load notifications.</div>
+        }
+        @else if (notifications().length === 0) {
+          <div class="panel-empty">
+            <span class="empty-icon"><i class="pi pi-bell"></i></span>
+            <span class="empty-title">No notifications yet.</span>
+            <span class="empty-hint">You will see updates about your trainings here.</span>
+          </div>
+        }
+        @else {
+          @for (item of notifications(); track item.id) {
+            <button
+              type="button"
+              class="row"
+              (click)="openNotification(item)">
+
+              <!-- Nokta yerine boşluk her satırda duruyor;
+                   okunmuşta içi boş kalıyor ki hizalar kaymasın. -->
+              <span class="row-dot">
+                @if (!item.isRead) {
+                  <span class="dot"></span>
+                }
+              </span>
+
+              <span
+                class="row-icon"
+                [class.tone-negative]="tone(item) === 'negative'"
+                [class.tone-positive]="tone(item) === 'positive'">
+                <i [class]="iconFor(item)"></i>
+              </span>
+
+              <span class="row-text">
+                <span class="row-message" [class.row-read]="item.isRead">{{ item.message }}</span>
+                <span class="row-time">{{ timeAgo(item.createdAt) }}</span>
+              </span>
+            </button>
+          }
+        }
+
+      </div>
+    </div>
+  }
+
+</div>

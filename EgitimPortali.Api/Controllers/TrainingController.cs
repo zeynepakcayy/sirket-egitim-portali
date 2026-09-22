@@ -420,10 +420,9 @@ public class TrainingsController : ControllerBase
         ile birlikte tek seferde kaydediliyor.
         */
         if (justCancelled)
-            await _notifications.TrainingCancelledAsync(training);
+            await _notifications.TrainingCancelledAsync(training, currentUserId);
         else if (scheduleChanged)
-            await _notifications.TrainingUpdatedAsync(training);
-
+            await _notifications.TrainingUpdatedAsync(training, currentUserId);
         await _context.SaveChangesAsync();
 
         return NoContent();
@@ -467,7 +466,7 @@ public class TrainingsController : ControllerBase
         training.Status = TrainingStatus.Cancelled;
 
         if (!wasAlreadyCancelled)
-            await _notifications.TrainingCancelledAsync(training);
+            await _notifications.TrainingCancelledAsync(training, currentUserId);
 
         await _context.SaveChangesAsync();
 

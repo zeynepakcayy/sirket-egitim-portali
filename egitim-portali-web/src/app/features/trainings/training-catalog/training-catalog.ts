@@ -1,4 +1,5 @@
-import { Component, inject, signal, computed, OnInit } from '@angular/core';
+import { Component, DestroyRef, inject, signal, computed, OnInit } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {DatePipe} from '@angular/common'; 
 
 //ngModel'i getiriyor
@@ -17,7 +18,7 @@ import { TrainingService } from '../../../core/services/training.service';
 import { ApplicationService } from '../../../core/services/application.service';
 import { TrainingListItem, TrainingDetail } from '../../../core/models/training.model';
 
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 
 import { AuthService } from '../../../core/services/auth.service';
 
@@ -32,6 +33,14 @@ import { AuthService } from '../../../core/services/auth.service';
 })
 export class TrainingCatalog implements OnInit {
   private router = inject(Router);
+
+  // Adresteki ?open=<id> parametresini okumak için.
+  // Bildirime tıklayınca zil bileşeni bu parametreyle buraya yönlendiriyor.
+  private route = inject(ActivatedRoute);
+
+  // Adres değişikliklerini dinleyen aboneliği bileşen kalkarken
+  // kapatmak için lazım.
+  private destroyRef = inject(DestroyRef);
 
   private authService = inject(AuthService);
   /*
@@ -127,7 +136,56 @@ export class TrainingCatalog implements OnInit {
   ngOnInit(): void {
     this.loadTrainings();
     this.loadInstructorNames();
+    this.watchOpenParam();
   }
+
+
+  /*
+  Bildirime tıklanınca zil bileşeni /trainings?open=<id> adresine
+  yönlendiriyor. Bu metot o parametreyi yakalayıp ilgili eğitimin
+  büyük kartını açıyor.
+
+  DİKKAT — burada snapshot KULLANILMIYOR, abonelik kullanılıyor.
+  Sebebi önemli: kullanıcı zaten katalog sayfasındayken bir
+  bildirime tıklarsa Angular rotanın aynı kaldığını görüyor ve
+  bileşeni yeniden kurmuyor. ngOnInit tekrar çalışmıyor, dolayısıyla
+  snapshot'tan okuyan bir kod o durumda hiç tetiklenmezdi —
+  hata da vermezdi, kart sessizce açılmazdı.
+
+  queryParamMap bir akış; adres her değiştiğinde haber veriyor,
+  bileşen yeniden kurulmasa bile.
+  */
+  private watchOpenParam(): void {
+    this.route.queryParamMap
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(params => {
+        const openId = params.get('open');
+
+        if (!openId) {
+          return;
+        }
+
+        this.openDetail(openId);
+
+        /*
+        Parametreyi adresten siliyoruz. Kalsaydı kullanıcı kartı
+        kapatıp sayfayı yenilediğinde kart tekrar açılırdı.
+
+        replaceUrl: true geçmişe yeni kayıt eklemiyor, mevcut adresi
+        değiştiriyor. Olmasaydı geri tuşu kullanıcıyı parametreli
+        adrese geri götürür ve kart yine açılırdı.
+
+        Bu yönlendirme aboneliği tekrar tetikliyor ama bu sefer
+        parametre boş olduğu için yukarıdaki kontrol onu durduruyor.
+        */
+        this.router.navigate([], {
+          relativeTo: this.route,
+          queryParams: {},
+          replaceUrl: true
+        });
+      });
+  }
+
 
   loadTrainings(): void {
     // İstek başlarken eski hatayı temizle. Temizlemezsek başarılı
