@@ -7,11 +7,15 @@ Katılımcı yönetimi. Participants sayfası bunu kullanıyor.
 
 Yetki kuralı: HRManager tüm eğitimlerde, Instructor sadece kendi
 açtıklarında. Employee bu endpoint'lere hiç erişemiyor.
+
+Çıkarma işlemi iki bildirim üretiyor: çıkarılan kişiye ve
+yerine yedekten geçen kişiye.
 */
 using EgitimPortali.Api.Data;
 using EgitimPortali.Api.DTOs.Participant;
 using EgitimPortali.Api.Helpers;
 using EgitimPortali.Api.Models;
+using EgitimPortali.Api.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -26,9 +30,16 @@ public class ParticipantsController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
 
-    public ParticipantsController(ApplicationDbContext context)
+    // Bildirim üreten servis. Program.cs'de AddScoped ile tanıtıldığı için
+    // parantezin içine yazmak yeterli; .NET hazır bir tane koyuyor.
+    private readonly NotificationService _notifications;
+
+    public ParticipantsController(
+        ApplicationDbContext context,
+        NotificationService notifications)
     {
         _context = context;
+        _notifications = notifications;
     }
 
     /*
@@ -161,8 +172,22 @@ public class ParticipantsController : ControllerBase
         // "çıkarıldım" görüyor ve aynı eğitime tekrar başvuramıyor.
         application.Status = ApplicationStatus.Removed;
 
+        /*
+        Çıkarılan kişiye bildirim. Henüz diske yazılmıyor —
+        aşağıdaki tek SaveChangesAsync ile durum değişikliğiyle
+        birlikte kaydediliyor. Biri olup öteki olmuyor.
+        */
+        _notifications.RemovedFromTraining(application.UserId, application.Training);
+
         if (wasEnrolled)
-            await WaitlistHelper.PromoteNextAsync(_context, application.TrainingId);
+        {
+            // Helper artık terfi ettirdiği kaydı döndürüyor.
+            var promoted = await WaitlistHelper.PromoteNextAsync(_context, application.TrainingId);
+
+            // Yedek listede kimse yoksa null dönüyor, bildirim de gitmiyor.
+            if (promoted != null)
+                _notifications.PromotedFromWaitlist(promoted.UserId, application.Training);
+        }
 
         await _context.SaveChangesAsync();
         return NoContent();

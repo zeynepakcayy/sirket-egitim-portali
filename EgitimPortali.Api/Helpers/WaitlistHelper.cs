@@ -16,10 +16,15 @@ değişince öteki unutulurdu.
 Kaydetmiyor — SaveChangesAsync çağıran tarafın işi. Böylece
 "kişiyi çıkar + yerine yedektekini al" tek kayıtta birlikte yapılıyor;
 biri başarılı olup öteki yarım kalamıyor.
+
+Terfi ettirdiği kaydı GERİ DÖNDÜRÜYOR. Bildirim sistemi gelince
+"kim terfi etti" bilgisi gerekti; eskiden hiçbir şey döndürmüyordu
+ve çağıran taraf kimi bilgilendireceğini bilemiyordu.
+Yedek listede kimse yoksa null dönüyor.
 */
 public static class WaitlistHelper
 {
-    public static async Task PromoteNextAsync(ApplicationDbContext context, Guid trainingId)
+    public static async Task<Application?> PromoteNextAsync(ApplicationDbContext context, Guid trainingId)
     {
         // OrderBy şart: sıra belirsiz olsaydı her seferinde
         // farklı biri terfi edebilirdi.
@@ -30,5 +35,7 @@ public static class WaitlistHelper
 
         if (next != null)
             next.Status = ApplicationStatus.Applied;
+
+        return next;
     }
 }

@@ -7,6 +7,9 @@ Başvuru işlemleri. Üç endpoint:
 Onay akışı yok: başvuran anında kaydolur, kontenjan doluysa
 yedek listeye düşer. HRManager bu endpoint'lere hiç erişemiyor —
 tamamen yönetici rolü, eğitime katılmıyor.
+
+İki bildirim üretiyor: başvuru olunca eğitimi açan kişiye,
+biri çekilip yedekten terfi olunca terfi eden kişiye.
 */
 using EgitimPortali.Api.Data;
 using EgitimPortali.Api.DTOs.Application;
@@ -16,7 +19,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 using EgitimPortali.Api.Helpers;
-using EgitimPortali.Api.Helpers;
+using EgitimPortali.Api.Services;
 
 namespace EgitimPortali.Api.Controllers;
 
@@ -27,9 +30,15 @@ public class ApplicationsController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
 
-    public ApplicationsController(ApplicationDbContext context)
+    // Bildirim üreten servis. Program.cs'de AddScoped ile tanıtıldı.
+    private readonly NotificationService _notifications;
+
+    public ApplicationsController(
+        ApplicationDbContext context,
+        NotificationService notifications)
     {
         _context = context;
+        _notifications = notifications;
     }
 
     // POST /api/applications/{trainingId}
@@ -109,6 +118,16 @@ public class ApplicationsController : ControllerBase
             });
         }
 
+        /*
+        Eğitimi açan kişiye haber: eğitimine biri başvurdu.
+        Yedeğe düşen başvurular da bildiriliyor — eğitmen için
+        ikisi de "eğitimimde hareket var" demek.
+
+        SaveChangesAsync'ten ÖNCE hazırlanıyor: başvuru kaydıyla
+        birlikte tek seferde yazılıyor.
+        */
+        await _notifications.NewApplicationAsync(training, userId);
+
         await _context.SaveChangesAsync();
 
         // Frontend hangi duruma düştüğünü bilmeli:
@@ -124,10 +143,16 @@ public class ApplicationsController : ControllerBase
         if (userIdText == null || !Guid.TryParse(userIdText, out var userId))
             return Unauthorized();
 
+        /*
+        Include eklendi: terfi bildiriminin cümlesinde eğitimin
+        başlığı geçiyor, o yüzden eğitim nesnesi lazım.
+        Önceden sadece başvuru kaydıyla iş görüyordu.
+        */
         var application = await _context.Applications
+            .Include(a => a.Training)
             .FirstOrDefaultAsync(a => a.TrainingId == trainingId && a.UserId == userId);
 
-        if (application == null)
+        if (application == null || application.Training == null)
             return NotFound();
 
         
@@ -149,7 +174,13 @@ public class ApplicationsController : ControllerBase
         // Kayıtlı biri ayrıldıysa yedekteki en eski başvuran yukarı çıkıyor.
         // Mantık WaitlistHelper'da — Participants'taki çıkarma da aynısını kullanıyor.
         if (wasEnrolled)
-            await WaitlistHelper.PromoteNextAsync(_context, trainingId);
+        {
+            var promoted = await WaitlistHelper.PromoteNextAsync(_context, trainingId);
+
+            // Yedek listede kimse yoksa null dönüyor, bildirim de gitmiyor.
+            if (promoted != null)
+                _notifications.PromotedFromWaitlist(promoted.UserId, application.Training);
+        }
 
         await _context.SaveChangesAsync();
         return NoContent();

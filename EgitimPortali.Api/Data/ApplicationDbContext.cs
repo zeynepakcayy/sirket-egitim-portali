@@ -19,6 +19,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, IdentityR
     public DbSet<Training> Trainings { get; set; }
     public DbSet<Application> Applications { get; set; }
     public DbSet<Certificate> Certificates { get; set; }
+    public DbSet<Notification> Notifications { get; set; }
 
 
     //ritabanı şemasını kurarken bu metodu otomatik çağırır
@@ -76,6 +77,23 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, IdentityR
         builder.Entity<Certificate>()
             .HasIndex(c => c.CertificateCode)
             .IsUnique();
+
+        // Notification -> User (N-1): bir kullanıcının birden çok bildirimi olabilir
+        builder.Entity<Notification>()
+            //bir bildirim, tek bir kullanıcıya aittir
+            .HasOne(n => n.User)
+            //ApplicationUser tarafında bildirim koleksiyonu YOK, o yüzden parantez boş.
+            //Burada boş bırakmak doğru; koleksiyon olsaydı onu göstermek zorunda kalırdık.
+            .WithMany()
+            //bildirim tablosundaki UserId alanı ile kullanıcı tablosundaki Id alanı eşleşir
+            .HasForeignKey(n => n.UserId)
+            //kullanıcı silinirse bildirimleri de silinsin — tek başına anlamı olmayan kayıtlar
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // Zil ikonu 30 saniyede bir "bu kullanıcının bildirimleri" diye soracak.
+        // Bu indeks olmadan veritabanı her seferinde tüm tabloyu baştan sona tarar.
+        builder.Entity<Notification>()
+            .HasIndex(n => n.UserId);
 
     }
 

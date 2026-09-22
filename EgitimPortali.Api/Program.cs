@@ -57,6 +57,7 @@ builder.Services.AddAuthentication(options =>
     };
 });
 builder.Services.AddScoped<TokenService>();
+builder.Services.AddScoped<NotificationService>();
 
 
 builder.Services.AddCors(options =>

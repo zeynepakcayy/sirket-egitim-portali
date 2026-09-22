@@ -7,6 +7,8 @@ Bu controller, /api/trainings altında beş endpoint sunuyor (listele, detay gö
 güncelle, iptal et), her isteği rol bazlı yetkiyle kontrol ediyor ve veritabanı modelini doğrudan
 değil DTO'lar üzerinden dışarı veriyor.
 
+Güncelleme ve iptal işlemleri bildirim üretiyor: eğitime kayıtlı
+ve yedekteki kişilere haber gidiyor.
 */
 using EgitimPortali.Api.Data;
 using EgitimPortali.Api.DTOs.Training;
@@ -20,8 +22,10 @@ using EgitimPortali.Api.DTOs.Common;
 
 using EgitimPortali.Api.DTOs.Application;
 
-namespace EgitimPortali.Api.Controllers;
 using EgitimPortali.Api.Helpers;
+using EgitimPortali.Api.Services;
+
+namespace EgitimPortali.Api.Controllers;
 
 [ApiController]
 [Route("api/trainings")]
@@ -30,9 +34,15 @@ public class TrainingsController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
 
-    public TrainingsController(ApplicationDbContext context)
+    // Bildirim üreten servis. Program.cs'de AddScoped ile tanıtıldı.
+    private readonly NotificationService _notifications;
+
+    public TrainingsController(
+        ApplicationDbContext context,
+        NotificationService notifications)
     {
         _context = context;
+        _notifications = notifications;
     }
 
 
@@ -58,38 +68,12 @@ public class TrainingsController : ControllerBase
         };
     }
 
-
-
-
     /*
-    Eğitimin görünen durumu. Veritabanında sadece iki değer tutuluyor:
-    OpenForApplication ya da Cancelled.
-
-    Ongoing ve Completed tarihten hesaplanıyor — ayrı tutulsaydı
-    eğitim bittiğinde birinin gidip durumu güncellemesi gerekirdi,
-    unutulursa kayıt gerçekle çelişirdi. Kapasite rozetinde de
-    aynı yolu izlemiştik.
-
-    İptal her şeyin önünde: iptal edilmiş bir eğitim tarihi geçse de
-    "tamamlandı" sayılmaz.
+    NOT: Buradaki GetDisplayStatus metodu kaldırıldı.
+    Durum hesaplaması Helpers/TrainingStatusHelper.cs içinde duruyor —
+    ApplicationsController ve ParticipantsController da aynı metodu
+    kullanıyor. İki kopya olsaydı biri değişince öteki unutulurdu.
     */
-    private static string GetDisplayStatus(TrainingStatus status, DateTime startDate, DateTime endDate)
-    {
-        if (status == TrainingStatus.Cancelled)
-            return TrainingStatus.Cancelled.ToString();
-
-        var now = DateTime.UtcNow;
-
-        if (now > endDate)
-            return TrainingStatus.Completed.ToString();
-
-        if (now >= startDate)
-            return TrainingStatus.Ongoing.ToString();
-
-        return TrainingStatus.OpenForApplication.ToString();
-    }
-
-
 
 
     // GET /api/trainings?page=1&pageSize=10
@@ -326,6 +310,12 @@ public class TrainingsController : ControllerBase
         _context.Trainings.Add(training);
         await _context.SaveChangesAsync();
 
+        /*
+        Yeni eğitim bildirimi burada YOK. Kararımız şuydu: yeni eğitim
+        herkese duyurulmuyor, eğitimi açan kişi formda kişileri tek tek
+        seçiyor ve sadece onlara davet gidiyor. O kısım 8. adımda gelecek.
+        */
+
         return CreatedAtAction(nameof(GetTraining), new { id = training.Id }, training.Id);
     }
 
@@ -372,6 +362,20 @@ public class TrainingsController : ControllerBase
         if (!Enum.TryParse<TrainingStatus>(dto.Status, out var parsedStatus))
             return BadRequest("Invalid status value.");
 
+        /*
+        Eski değerleri kenara alıyoruz. Aşağıdaki satırlar bunların
+        üzerine yazacak ve o andan sonra "gerçekten değişti mi" sorusunu
+        cevaplayacak başka bir kaynak kalmayacak.
+
+        Sadece bildirim kararını etkileyen alanlar saklanıyor: tarih,
+        saat, konum ve durum. Başlık ya da açıklama değişikliği bildirim
+        üretmiyor — gereksiz bildirim, bildirimi değersizleştirir.
+        */
+        var oldStartDate = training.StartDate;
+        var oldEndDate = training.EndDate;
+        var oldLocation = training.Location;
+        var oldStatus = training.Status;
+
         training.Title = dto.Title;
         training.Description = dto.Description;
         training.StartDate = ToUtc(dto.StartDate);
@@ -388,6 +392,37 @@ public class TrainingsController : ControllerBase
         training.ExternalInstructorOrganization = dto.ExternalInstructorOrganization;
 
         training.Status = parsedStatus;
+
+        /*
+        Bildirim kararı. İki soru soruyoruz:
+          1. Eğitim YENİ mi iptal edildi?
+          2. Tarih, saat ya da konum değişti mi?
+
+        justCancelled'da iki koşul birden aranıyor: önceden iptal DEĞİLDİ
+        ve şimdi iptal. Sadece ikinciye bakılsaydı, iptal edilmiş bir eğitim
+        her kaydedildiğinde herkese tekrar bildirim giderdi.
+        */
+        var justCancelled =
+            oldStatus != TrainingStatus.Cancelled &&
+            training.Status == TrainingStatus.Cancelled;
+
+        var scheduleChanged =
+            training.StartDate != oldStartDate ||
+            training.EndDate != oldEndDate ||
+            training.Location != oldLocation;
+
+        /*
+        "else if" bilinçli bir seçim: hem iptal edilip hem tarihi
+        değiştirilirse sadece iptal bildirimi gidiyor. İptal edilmiş
+        bir eğitim için "tarihi değişti" demek anlamsız.
+
+        Bildirimler SaveChangesAsync'ten önce hazırlanıyor; güncelleme
+        ile birlikte tek seferde kaydediliyor.
+        */
+        if (justCancelled)
+            await _notifications.TrainingCancelledAsync(training);
+        else if (scheduleChanged)
+            await _notifications.TrainingUpdatedAsync(training);
 
         await _context.SaveChangesAsync();
 
@@ -419,8 +454,21 @@ public class TrainingsController : ControllerBase
         // sahiplik kontrolü gerekmiyor.
 
         
+        /*
+        İptal iki farklı yoldan yapılabiliyor: düzenleme formundaki
+        Status kutusundan ve buradan. İkisi de bildirim üretmeli,
+        yoksa hangi yolun kullanıldığına göre bazı kullanıcılar
+        haberdar olmazdı.
+
+        Zaten iptalliyse bildirim tekrar gitmiyor.
+        */
+        var wasAlreadyCancelled = training.Status == TrainingStatus.Cancelled;
 
         training.Status = TrainingStatus.Cancelled;
+
+        if (!wasAlreadyCancelled)
+            await _notifications.TrainingCancelledAsync(training);
+
         await _context.SaveChangesAsync();
 
         return NoContent();
