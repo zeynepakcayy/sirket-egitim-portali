@@ -308,16 +308,37 @@ public class TrainingsController : ControllerBase
         };
 
         _context.Trainings.Add(training);
-        await _context.SaveChangesAsync();
 
         /*
-        Yeni eğitim bildirimi burada YOK. Kararımız şuydu: yeni eğitim
-        herkese duyurulmuyor, eğitimi açan kişi formda kişileri tek tek
-        seçiyor ve sadece onlara davet gidiyor. O kısım 8. adımda gelecek.
+        Davet bildirimleri. Yeni eğitim HERKESE duyurulmuyor —
+        eğitimi açan kişi formda seçtiği kişilere gidiyor.
+
+        Gelen kimlikler doğrulanıyor: istemciden geldiği için
+        güvenilmez. Doğrulamasak biri Swagger'dan rastgele bir kimlik
+        gönderebilir ve olmayan bir kullanıcıya bildirim yazmaya
+        çalışınca yabancı anahtar hatası alır, 500 dönerdi.
+
+        Kesişim aynı zamanda kuralı da uyguluyor: HRManager'ın kimliği
+        gönderilse bile listede olmadığı için elenip gidiyor.
         */
+        if (dto.InviteUserIds != null && dto.InviteUserIds.Count > 0)
+        {
+            var invitableIds = await InvitableUserHelper.GetIdsAsync(_context, instructorId);
+            var validIds = dto.InviteUserIds.Intersect(invitableIds).ToList();
+
+            if (validIds.Count > 0)
+            {
+                _notifications.NewTrainingInvite(validIds, training);
+            }
+        }
+
+        // Eğitim ve davet bildirimleri tek seferde kaydediliyor:
+        // eğitim oluşmazsa davet de gitmiyor.
+        await _context.SaveChangesAsync();
 
         return CreatedAtAction(nameof(GetTraining), new { id = training.Id }, training.Id);
-    }
+       
+       }
 
     // PUT /api/trainings/{id}
     // Var olan bir eğitimi günceller (Status dahil). Instructor ve HRManager çağırabilir.

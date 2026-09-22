@@ -143,3 +143,22 @@
     background: var(--p-surface-600);
   }
 }
+
+
+/* Çoklu seçim kutusu diğer alanlar gibi tam genişlik olsun. */
+:host ::ng-deep .p-multiselect {
+  width: 100%;
+}
+
+/* Etiketteki "(optional)" ve alttaki açıklama yazısı. */
+.field-optional {
+  font-weight: 400;
+  color: var(--p-text-muted-color);
+  font-size: 0.85em;
+}
+
+.field-hint {
+  font-size: 0.8rem;
+  color: var(--p-text-muted-color);
+  margin-top: 0.25rem;
+}

@@ -57,4 +57,15 @@ public class CreateTrainingDto
 
     [StringLength(200)]
     public string? ExternalInstructorOrganization { get; set; }
+
+    /*
+    Yeni eğitime davet edilecek kişilerin kimlikleri.
+    Zorunlu değil: hiç gönderilmezse ya da boş gelirse kimseye
+    davet gitmiyor, eğitim normal oluşuyor.
+
+    Bu liste istemciden geliyor, yani GÜVENİLMEZ. Controller onu
+    gerçek ve davet edilebilir kullanıcılarla kesiştiriyor.
+    */
+    public List<Guid>? InviteUserIds { get; set; }
+
 }

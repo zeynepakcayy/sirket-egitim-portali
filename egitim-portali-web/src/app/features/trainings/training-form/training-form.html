@@ -141,6 +141,29 @@
     </div>
 
 
+        <!-- Davet listesi. Sadece yeni eğitim oluştururken görünüyor:
+         düzenlemede olsaydı form her kaydedişte aynı kişilere
+         tekrar davet gönderirdi.
+         Zorunlu değil — boş bırakılırsa kimseye bildirim gitmiyor. -->
+    @if (!isEditMode()) {
+      <div class="field">
+        <label for="invite">Invite people <span class="field-optional">(optional)</span></label>
+        <p-multiselect inputId="invite"
+          [options]="inviteOptions()"
+          [ngModel]="inviteUserIds()"
+          (onChange)="inviteUserIds.set($event.value)"
+          optionLabel="label"
+          optionValue="id"
+          [filter]="true"
+          filterBy="label"
+          display="chip"
+          [showClear]="true"
+          placeholder="Select people to notify" />
+        <span class="field-hint">Selected people get a notification about this training.</span>
+      </div>
+    }
+    
+
     <!-- Status sadece düzenlemede görünüyor. Oluştururken backend
          otomatik OpenForApplication atıyor.
          Listede iki seçenek var: Ongoing ve Completed veritabanında

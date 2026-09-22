@@ -2,6 +2,7 @@ import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { DatePickerModule } from 'primeng/datepicker';
 import { SelectModule } from 'primeng/select';
+import { MultiSelectModule } from 'primeng/multiselect';
 import { InputTextModule } from 'primeng/inputtext';
 import { TextareaModule } from 'primeng/textarea';
 import { CheckboxModule } from 'primeng/checkbox';
@@ -9,7 +10,9 @@ import { AuthService } from '../../../core/services/auth.service';
 import { MessageService } from 'primeng/api';
 import { Router, ActivatedRoute} from '@angular/router';
 import { TrainingService } from '../../../core/services/training.service';
+import { UserService } from '../../../core/services/user.service';
 import { TrainingRequest, TrainingUpdateRequest, TrainingDetail } from '../../../core/models/training.model';
+import { InvitableUser } from '../../../core/models/user.model';
 
 @Component({
   selector: 'app-training-form',
@@ -17,6 +20,7 @@ import { TrainingRequest, TrainingUpdateRequest, TrainingDetail } from '../../..
     FormsModule,
     DatePickerModule,
     SelectModule,
+    MultiSelectModule,
     InputTextModule,
     TextareaModule,
     CheckboxModule
@@ -30,6 +34,7 @@ export class TrainingForm implements OnInit {
 
 
   private trainingService = inject(TrainingService);
+  private userService = inject(UserService);
   private router = inject(Router);
 
 
@@ -67,6 +72,33 @@ export class TrainingForm implements OnInit {
   private loadedDetail: TrainingDetail | null = null;
 
 
+  /*
+  --- Davet edilecek kişiler ---
+
+  Sadece YENİ eğitim oluştururken görünüyor. Düzenlemede yok:
+  form her kaydedişte aynı kişilere tekrar davet gönderirdi.
+  "Mevcut eğitime davet et" ayrı bir özellik olarak eklenebilir.
+  */
+  invitableUsers = signal<InvitableUser[]>([]);
+  inviteUserIds = signal<string[]>([]);
+
+  /*
+  Seçim kutusuna verilecek seçenekler. Ad ve departman tek metinde
+  birleşiyor — aynı adda iki kişi varsa ayırt edilebilsin.
+
+  Ayrı bir satır şablonuyla (pTemplate) iki satırlı görünüm de
+  yapılabilirdi ama PrimeNG 22'deki yazımı doğrulanmadı. Tek metin
+  hem güvenli hem de aramada işe yarıyor: kullanıcı departman adı
+  yazarak da süzebiliyor.
+  */
+  inviteOptions = computed(() =>
+    this.invitableUsers().map(user => ({
+      id: user.id,
+      label: user.department
+        ? `${user.fullName} — ${user.department}`
+        : user.fullName
+    }))
+  );
 
 
   // Kaydetme sürerken düğmeyi kilitliyoruz — çift tıklamada
@@ -152,8 +184,31 @@ export class TrainingForm implements OnInit {
     if (id !== null) {
       this.editingId.set(id);
       this.loadTraining(id);
+    } else {
+      // Davet seçici sadece oluşturma modunda var, listeyi de
+      // sadece o modda çekiyoruz. Düzenlemede gereksiz istek olurdu.
+      this.loadInvitableUsers();
     }
   }
+
+
+  /*
+  Davet edilebilecek kişileri çeker.
+
+  Hata durumunda seçici boş kalıyor ve formu bloke etmiyoruz:
+  davet zorunlu değil, eğitim yine oluşturulabilir. Kullanıcıyı
+  ilgilendirmeyen bir hata için formu kullanılamaz hale getirmek
+  yanlış olurdu.
+  */
+  private loadInvitableUsers(): void {
+    this.userService.getInvitableUsers().subscribe({
+      next: (users) => this.invitableUsers.set(users),
+      error: (err) => {
+        console.error('Invitable users error:', err);
+      }
+    });
+  }
+
 
   loadTraining(id: string): void {
     this.loadingDetail.set(true);
@@ -263,9 +318,12 @@ export class TrainingForm implements OnInit {
       };
 
       if (this.isEditMode()) {
+        // Davet kimlikleri EKLENMİYOR: PUT bu alanı tanımıyor.
         this.sendUpdate(request);
       } else {
-        this.sendCreate(request);
+        // Davet kimlikleri sadece oluşturmada gönderiliyor.
+        // Kimse seçilmediyse boş dizi gidiyor, backend hiç bildirim yazmıyor.
+        this.sendCreate({ ...request, inviteUserIds: this.inviteUserIds() });
       }
     }
 
@@ -456,6 +514,11 @@ export class TrainingForm implements OnInit {
       found['endTime'] = 'End time is required.';
     }
 
+    /*
+    Davet listesi BİLİNÇLİ olarak doğrulanmıyor — zorunlu değil.
+    Boş bırakılabilir, o zaman kimseye davet gitmez.
+    */
+
     // Dış eğitmen seçiliyse üç alan da zorunlu.
     // Ad özellikle kritik: backend "ExternalInstructorName doluysa
     // bu eğitim dış eğitmenlidir" kuralıyla çalışıyor.
@@ -528,6 +591,9 @@ export class TrainingForm implements OnInit {
     this.externalEmail.set('');
     this.externalOrganization.set('');
     this.status.set('OpenForApplication');
+    // Seçilen davetliler de sıfırlanıyor. Bu satır olmasa Clear'dan
+    // sonra görünmeyen bir seçim kalırdı ve kaydedince davet giderdi.
+    this.inviteUserIds.set([]);
   }
 
 }

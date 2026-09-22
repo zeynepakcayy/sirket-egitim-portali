@@ -52,6 +52,17 @@ export interface TrainingRequest {
   externalInstructorName: string | null;
   externalInstructorEmail: string | null;
   externalInstructorOrganization: string | null;
+
+  /*
+  Yeni eğitime davet edilecek kişilerin kimlikleri.
+
+  SORU İŞARETLİ çünkü sadece POST gövdesinde kullanılıyor.
+  Backend'deki UpdateTrainingDto'da böyle bir alan yok; düzenleme
+  isteği bunu hiç göndermiyor. Zorunlu yapsaydık TrainingUpdateRequest
+  de onu miras alır ve her güncellemede boş bir dizi göndermek
+  zorunda kalırdık — gövde yanıltıcı olurdu.
+  */
+  inviteUserIds?: string[];
 }
 
 

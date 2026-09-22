@@ -59,6 +59,10 @@ builder.Services.AddAuthentication(options =>
 builder.Services.AddScoped<TokenService>();
 builder.Services.AddScoped<NotificationService>();
 
+// Arka planda çalışan hatırlatma görevi. AddScoped değil AddHostedService:
+// bir isteğe bağlı değil, uygulama boyunca kendi başına çalışıyor.
+builder.Services.AddHostedService<TrainingReminderService>();
+
 
 builder.Services.AddCors(options =>
 {
