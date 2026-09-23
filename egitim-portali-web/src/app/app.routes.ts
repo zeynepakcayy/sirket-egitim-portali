@@ -11,12 +11,15 @@ import { authGuard } from './core/guards/auth.guard';
 
 import { TrainingCatalog } from './features/trainings/training-catalog/training-catalog';
 import { TrainingForm } from './features/trainings/training-form/training-form';
+import { ManagedTrainings } from './features/trainings/managed-trainings/managed-trainings';
 
 import { roleGuard } from './core/guards/role.guard';
 
 import { MyTrainings } from './features/applications/my-trainings/my-trainings';
 
 import { Participants } from './features/applications/participants/participants';
+
+import { Home } from './features/home/home';
 
 export const routes: Routes = [
   //layout dışında, tam ekran açılan sayfalar
@@ -30,16 +33,27 @@ export const routes: Routes = [
     component: Layout,
     canActivate: [authGuard],
     children: [
-      { path: 'dashboard', component: Dashboard },
+      // Dashboard artık boş bir sayfa değil: kaydolduğum egitimler,
+      // ozet kutulari ve kategori grafigi. Her rol goruyor -
+      // HR de bir egitime kaydolursa burada gorur.
+      { path: 'dashboard', component: Home },
+
+      // Eski adres. Kimsenin kaydettigi link kirilmasin diye
+      // dashboard'a yonlendiriyoruz.
+      { path: 'my-applications', redirectTo: 'dashboard', pathMatch: 'full' },
+
+      // Yonettigim egitimler. Instructor kendininkini, HR hepsini
+      // goruyor - ayrimi backend yapiyor. Employee'ye kapali:
+      // menude gizlemek koruma saglamaz, adres elle yazilabiliyor.
+      {
+        path: 'my-trainings',
+        component: ManagedTrainings,
+        canActivate: [roleGuard],
+        data: { roles: ['Instructor', 'HRManager'] }
+      },
 
       // Menüde gizlemek koruma sağlamaz, adres elle yazılabiliyor.
-      // HRManager başvuru yapamadığı için bu iki sayfa ona kapalı.
-      {
-        path: 'my-applications',
-        component: MyTrainings,
-        canActivate: [roleGuard],
-        data: { roles: ['Employee', 'Instructor'] }
-      },
+      // HRManager başvuru yapamadığı için bu sayfa ona kapalı.
       {
         path: 'my-certificates',
         component: Dashboard,
@@ -56,15 +70,14 @@ export const routes: Routes = [
         canActivate: [roleGuard],
         data: { roles: ['Instructor', 'HRManager'] }
       },
+      // Düzenleme aynı bileşeni kullanıyor. :id bir yer tutucu —
+      // adresteki gerçek değer bileşen içinde okunacak.
       {
         path: 'trainings/:id/edit',
         component: TrainingForm,
         canActivate: [roleGuard],
         data: { roles: ['Instructor', 'HRManager'] }
       },
-      // Düzenleme aynı bileşeni kullanıyor. :id bir yer tutucu —
-      // adresteki gerçek değer bileşen içinde okunacak.
-      { path: 'trainings/:id/edit', component: TrainingForm },
 
       // Onay akışı kaldırılınca Approvals sayfası anlamını yitirdi,
       // yerine katılımcı yönetimi geldi. Employee'ye kapalı.

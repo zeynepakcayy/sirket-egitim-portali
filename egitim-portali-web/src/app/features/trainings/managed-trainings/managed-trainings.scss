@@ -1,0 +1,459 @@
+/*
+Renkler PrimeNG tema degiskenlerinden geliyor - tema degisirse
+sayfa da degisiyor. Sadece anlamsal renkler (yesil/kirmizi/mavi)
+sabit, cunku notr temada boyle bir renk tanimi yok.
+*/
+
+$accent:     #cf4529;  // marka rengi - butonlar, baglantilar
+$positive:   #5fb87a;  // acik egitim
+$negative:   #e0603f;  // iptal, dolu
+$chart-blue: #3f87bd;  // kayitli
+$chart-gold: #c2882c;  // yedekte
+
+.managed-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+/* ---------- BASLIK ---------- */
+
+.page-head {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.page-title {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 600;
+  color: var(--p-text-color);
+}
+
+.page-role {
+  font-size: 0.8rem;
+  color: var(--p-text-muted-color);
+}
+
+.head-spacer {
+  flex-grow: 1;
+}
+
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.55rem 0.9rem;
+  background: $accent;
+  border-radius: 8px;
+  color: #ffffff;
+  font-size: 0.85rem;
+  font-weight: 500;
+  text-decoration: none;
+
+  &:hover {
+    filter: brightness(1.08);
+  }
+
+  i {
+    font-size: 0.8rem;
+  }
+}
+
+/* ---------- DURUM KUTULARI (yukleniyor / hata / bos) ---------- */
+
+.state-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 3rem 1.5rem;
+  background: var(--p-surface-800);
+  border: 1px solid var(--p-surface-700);
+  border-radius: 12px;
+  color: var(--p-text-muted-color);
+  font-size: 0.9rem;
+
+  i {
+    font-size: 1.4rem;
+  }
+}
+
+.state-error {
+  color: $negative;
+}
+
+.btn-text {
+  background: none;
+  border: none;
+  padding: 0;
+  color: $accent;
+  font-size: 0.85rem;
+  cursor: pointer;
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+/* ---------- OZET KUTULARI ---------- */
+
+.stat-row {
+  display: flex;
+  gap: 0.85rem;
+}
+
+/* Artik bir dugme. Tarayicinin varsayilan dugme gorunumunu
+   sifirliyoruz, yoksa gri bir kutu gibi gorunur. */
+.stat-card {
+  flex-grow: 1;
+  flex-basis: 0;          // hepsi esit genislikte
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.4rem;
+  padding: 1rem 1.1rem;
+  background: var(--p-surface-800);
+  border: 1px solid var(--p-surface-700);
+  border-radius: 12px;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+
+  &:hover {
+    border-color: var(--p-surface-600);
+  }
+
+  // Secili kutu: ustte ince bir cizgi. Sadece renk degistirmek
+  // yetmez - renk koru biri icin hicbir sey soylemez.
+  &.is-active {
+    border-color: $accent;
+    box-shadow: inset 0 2px 0 0 $accent;
+  }
+}
+
+.stat-label {
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  color: var(--p-text-muted-color);
+}
+
+.stat-value {
+  margin-top: 0.4rem;
+  font-size: 1.7rem;
+  font-weight: 600;
+  color: var(--p-text-color);
+  line-height: 1.1;
+}
+
+/* ---------- GRAFIK ---------- */
+
+.chart-card {
+  padding: 1rem 1.15rem 0.9rem;
+  background: var(--p-surface-800);
+  border: 1px solid var(--p-surface-700);
+  border-radius: 12px;
+}
+
+.chart-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.chart-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--p-text-color);
+}
+
+.chart-sub {
+  margin-top: 0.15rem;
+  font-size: 0.72rem;
+  color: var(--p-text-muted-color);
+}
+
+.chart-legend {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.72rem;
+  color: var(--p-text-muted-color);
+}
+
+.legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+}
+
+.dot-registered { background: $chart-blue; }
+.dot-waitlist   { background: $chart-gold; }
+
+/* Sutunlarin oturdugu taban. align-items: flex-end sayesinde
+   her sutun alttan yukari dogru buyuyor. */
+.chart-plot {
+  margin-top: 0.9rem;
+  display: flex;
+  align-items: flex-end;
+  gap: 1rem;
+  height: 130px;
+  border-bottom: 1px solid var(--p-surface-700);
+}
+
+.chart-col {
+  flex-grow: 1;
+  flex-basis: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.35rem;
+}
+
+.chart-value {
+  font-size: 0.72rem;
+  color: var(--p-text-muted-color);
+  white-space: nowrap;
+}
+
+.chart-stack {
+  width: 100%;
+  max-width: 74px;
+  display: flex;
+  flex-direction: column;
+}
+
+.bar-waitlist {
+  display: block;
+  background: $chart-gold;
+  border-radius: 4px 4px 0 0;
+  margin-bottom: 2px;      // iki parca birbirine yapismasin
+}
+
+.bar-registered {
+  display: block;
+  background: $chart-blue;
+  border-radius: 4px 4px 0 0;
+}
+
+// Katilimcisi olmayan egitim: sutun tamamen kaybolmasin
+.bar-empty {
+  display: block;
+  height: 2px;
+  background: var(--p-surface-600);
+  border-radius: 2px 2px 0 0;
+}
+
+.chart-labels {
+  display: flex;
+  gap: 1rem;
+  margin-top: 0.5rem;
+}
+
+.chart-label {
+  flex-grow: 1;
+  flex-basis: 0;
+  min-width: 0;
+  text-align: center;
+  font-size: 0.72rem;
+  color: var(--p-text-muted-color);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ---------- LISTE BASLIGI VE FILTRE ---------- */
+
+.list-head {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding-bottom: 0.65rem;
+  border-bottom: 1px solid var(--p-surface-700);
+}
+
+.list-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--p-text-color);
+}
+
+.only-mine {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  color: var(--p-text-muted-color);
+  cursor: pointer;
+
+  input {
+    width: 15px;
+    height: 15px;
+    accent-color: $accent;
+    cursor: pointer;
+  }
+}
+
+/* ---------- TABLO ---------- */
+
+.table-card {
+  background: var(--p-surface-800);
+  border: 1px solid var(--p-surface-700);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.table-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.85rem 1.1rem;
+  border-bottom: 1px solid var(--p-surface-700);
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.table-header {
+  padding: 0.7rem 1.1rem;
+  background: var(--p-surface-700);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  color: var(--p-text-muted-color);
+}
+
+/* Sutun genislikleri. Baslik satiri ve veri satirlari ayni
+   siniflari kullaniyor, o yuzden hizalanmalari garanti. */
+.col-training {
+  flex-grow: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.col-organizer { flex-shrink: 0; width: 140px; font-size: 0.82rem; color: var(--p-text-color); }
+.col-seats     { flex-shrink: 0; width: 70px;  font-size: 0.82rem; color: var(--p-text-color); }
+.col-waiting   { flex-shrink: 0; width: 70px;  font-size: 0.82rem; color: var(--p-text-color); }
+.col-status    { flex-shrink: 0; width: 120px; }
+.col-actions   { flex-shrink: 0; width: 150px; display: flex; gap: 0.75rem; }
+
+.row-title {
+  font-size: 0.92rem;
+  color: var(--p-text-color);
+  text-decoration: none;
+
+  &:hover {
+    color: $accent;
+  }
+}
+
+.row-meta {
+  font-size: 0.75rem;
+  color: var(--p-text-muted-color);
+}
+
+.seats-full {
+  color: $negative;
+}
+
+.row-link {
+  font-size: 0.78rem;
+  color: $accent;
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+/* ---------- DURUM ETIKETLERI ---------- */
+
+.chip {
+  display: inline-block;
+  padding: 0.22rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* rgba ile zemin: tema degisse de altindaki yuzeye uyum sagliyor */
+.chip-positive { background: rgba(95, 184, 122, 0.14); color: $positive; }
+.chip-negative { background: rgba(224, 96, 63, 0.16);  color: $negative; }
+.chip-accent   { background: rgba(207, 69, 41, 0.16);  color: $accent; }
+.chip-neutral  { background: var(--p-surface-700);     color: var(--p-text-muted-color); }
+
+/* ---------- SAYFA SAYAC VE OKLAR ---------- */
+
+.list-count {
+  font-size: 0.78rem;
+  color: var(--p-text-muted-color);
+}
+
+.table-empty {
+  padding: 2rem 1.1rem;
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--p-text-muted-color);
+}
+
+.pager {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.9rem;
+  padding: 0.7rem;
+  border-top: 1px solid var(--p-surface-700);
+}
+
+.pager-btn {
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid var(--p-surface-600);
+  border-radius: 8px;
+  color: var(--p-text-color);
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    border-color: $accent;
+    color: $accent;
+  }
+
+  // Ilk/son sayfada ok pasif. Gizlemek yerine soluklastiriyoruz -
+  // dugmenin yeri sabit kaliyor, liste zipzip oynamiyor.
+  &:disabled {
+    opacity: 0.35;
+    cursor: default;
+  }
+
+  i {
+    font-size: 0.75rem;
+  }
+}
+
+.pager-info {
+  font-size: 0.8rem;
+  color: var(--p-text-muted-color);
+  min-width: 46px;
+  text-align: center;
+}

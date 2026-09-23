@@ -1,0 +1,189 @@
+<div class="managed-page">
+
+  <div class="page-head">
+    <h1 class="page-title">My Trainings</h1>
+    <span class="page-role">{{ roleLabel() }}</span>
+    <span class="head-spacer"></span>
+    <a class="btn-primary" routerLink="/trainings/create"><i class="pi pi-plus"></i><span>New training</span></a>
+  </div>
+
+  <!--
+    Dort durumdan biri gorunuyor: yukleniyor / hata / bos / veri.
+    DIKKAT: @else bir onceki blogun } isaretinden hemen sonra
+    gelmek zorunda. Aralarina yorum konursa Angular derlemez.
+  -->
+  @if (loading()) {
+    <div class="state-box">
+      <i class="pi pi-spin pi-spinner"></i>
+      <span>Loading...</span>
+    </div>
+  } @else if (loadError()) {
+    <div class="state-box state-error">
+      <span>Could not load your trainings.</span>
+      <button type="button" class="btn-text" (click)="load()">Try again</button>
+    </div>
+  } @else if (items().length === 0) {
+    <div class="state-box">
+      <i class="pi pi-book"></i>
+      <span>You have not created any trainings yet.</span>
+      <a class="btn-text" routerLink="/trainings/create">Create your first training</a>
+    </div>
+  } @else {
+
+    <!-- Kutular birer dugme: basilinca alttaki liste suzuluyor.
+         Ayni kutuya tekrar basmak filtreyi kaldiriyor. -->
+    <div class="stat-row">
+      <button type="button" class="stat-card" [class.is-active]="activeFilter() === 'all'" (click)="clearFilter()">
+        <span class="stat-label">TRAININGS</span>
+        <span class="stat-value">{{ summary()?.trainingCount }}</span>
+      </button>
+      <button type="button" class="stat-card" [class.is-active]="activeFilter() === 'registered'" (click)="setFilter('registered')">
+        <span class="stat-label">REGISTERED</span>
+        <span class="stat-value">{{ summary()?.registered }}</span>
+      </button>
+      <button type="button" class="stat-card" [class.is-active]="activeFilter() === 'waitlist'" (click)="setFilter('waitlist')">
+        <span class="stat-label">ON WAITLIST</span>
+        <span class="stat-value">{{ summary()?.waitlisted }}</span>
+      </button>
+      <button type="button" class="stat-card" [class.is-active]="activeFilter() === 'withdrawn'" (click)="setFilter('withdrawn')">
+        <span class="stat-label">WITHDRAWN</span>
+        <span class="stat-value">{{ summary()?.withdrawn }}</span>
+      </button>
+      <button type="button" class="stat-card" [class.is-active]="activeFilter() === 'removed'" (click)="setFilter('removed')">
+        <span class="stat-label">REMOVED</span>
+        <span class="stat-value">{{ summary()?.removed }}</span>
+      </button>
+      <button type="button" class="stat-card" [class.is-active]="activeFilter() === 'cancelled'" (click)="setFilter('cancelled')">
+        <span class="stat-label">CANCELLED</span>
+        <span class="stat-value">{{ summary()?.cancelledTrainings }}</span>
+      </button>
+    </div>
+
+    @if (chartBars().length > 0) {
+      <div class="chart-card">
+
+        <div class="chart-head">
+          <div>
+            <div class="chart-title">Participants per training</div>
+            <div class="chart-sub">Registered and waiting</div>
+          </div>
+          <div class="chart-legend">
+            <span class="legend-item">
+              <span class="legend-dot dot-registered"></span>
+              <span>Registered</span>
+            </span>
+            <span class="legend-item">
+              <span class="legend-dot dot-waitlist"></span>
+              <span>On waitlist</span>
+            </span>
+          </div>
+        </div>
+
+        <div class="chart-plot">
+          @for (bar of chartBars(); track bar.fullLabel) {
+            <div class="chart-col">
+              <span class="chart-value">{{ bar.registered }} + {{ bar.waitlist }}</span>
+              <span class="chart-stack">
+                @if (bar.waitlist > 0) {
+                  <span class="bar-waitlist" [style.height.px]="bar.waitlistHeight"></span>
+                }
+                @if (bar.registered > 0) {
+                  <span class="bar-registered" [style.height.px]="bar.registeredHeight"></span>
+                } @else {
+                  <span class="bar-empty"></span>
+                }
+              </span>
+            </div>
+          }
+        </div>
+
+        <div class="chart-labels">
+          @for (bar of chartBars(); track bar.fullLabel) {
+            <span class="chart-label" [title]="bar.fullLabel">{{ bar.label }}</span>
+          }
+        </div>
+
+      </div>
+    }
+
+    <div class="list-head">
+      <span class="list-title">{{ listTitle() }}</span>
+      @if (activeFilter() !== 'all') {
+        <button type="button" class="btn-text" (click)="clearFilter()">Show all</button>
+      }
+      <span class="head-spacer"></span>
+      <span class="list-count">{{ filteredItems().length }} training(s)</span>
+      @if (isHrManager()) {
+        <label class="only-mine">
+          <input type="checkbox" [checked]="onlyMine()" (change)="toggleOnlyMine($any($event.target).checked)" />
+          <span>Only mine</span>
+        </label>
+      }
+    </div>
+
+    <div class="table-card">
+
+      <div class="table-row table-header">
+        <span class="col-training">TRAINING</span>
+        @if (isHrManager()) {
+          <span class="col-organizer">ORGANIZER</span>
+        }
+        <span class="col-seats">SEATS</span>
+        <span class="col-waiting">WAITING</span>
+        <span class="col-status">STATUS</span>
+        <span class="col-actions"></span>
+      </div>
+
+      @for (item of pagedItems(); track item.id) {
+        <div class="table-row">
+
+          <span class="col-training">
+            <a class="row-title" [routerLink]="['/trainings']" [queryParams]="{ open: item.id }">{{ item.title }}</a>
+            <span class="row-meta">{{ item.startDate | date: 'dd MMM yyyy, HH:mm' }}{{ metaSuffix(item) }}</span>
+          </span>
+
+          @if (isHrManager()) {
+            <span class="col-organizer">{{ item.organizerName }}</span>
+          }
+
+          <span class="col-seats" [class.seats-full]="isFull(item)">
+            {{ item.registeredCount }} / {{ item.capacity }}
+          </span>
+
+          <span class="col-waiting">{{ item.waitlistCount }}</span>
+
+          <span class="col-status">
+            <span class="chip" [class]="statusClass(item.status)">{{ item.status }}</span>
+          </span>
+
+          <span class="col-actions">
+            <a class="row-link" routerLink="/participants">Participants</a>
+            @if (item.status !== 'Completed' && item.status !== 'Cancelled') {
+              <a class="row-link" [routerLink]="['/trainings', item.id, 'edit']">Edit</a>
+            }
+          </span>
+
+        </div>
+      }
+
+      @if (filteredItems().length === 0) {
+        <div class="table-empty">No trainings match this filter.</div>
+      }
+
+      @if (totalPages() > 1) {
+        <div class="pager">
+          <button type="button" class="pager-btn" [disabled]="page() === 1" (click)="prevPage()" aria-label="Previous page">
+            <i class="pi pi-chevron-left"></i>
+          </button>
+          <span class="pager-info">{{ page() }} / {{ totalPages() }}</span>
+          <button type="button" class="pager-btn" [disabled]="page() === totalPages()" (click)="nextPage()" aria-label="Next page">
+            <i class="pi pi-chevron-right"></i>
+          </button>
+        </div>
+      }
+
+    </div>
+
+  }
+
+</div>

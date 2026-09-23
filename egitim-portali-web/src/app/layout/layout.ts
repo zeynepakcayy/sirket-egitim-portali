@@ -40,12 +40,17 @@ export class Layout {
   // Menü maddesinin şekli
   // roles: bu maddeyi hangi roller görebilir. Boş dizi = herkes.
   private allNavItems = [
+    // Dashboard artık eski "My Trainings" sayfası: kaydolduğum eğitimler,
+    // özet kutuları ve kategori grafiği. Herkes aynı sayfayı görüyor.
     { label: 'Dashboard',        icon: 'pi pi-home',       route: '/dashboard',         roles: [] as string[], section: 'main' },
-    { label: 'My Trainings',     icon: 'pi pi-book',       route: '/my-applications',   roles: ['Employee', 'Instructor'], section: 'main' },
-    { label: 'My Certificates',  icon: 'pi pi-verified',   route: '/my-certificates',   roles: ['Employee', 'Instructor'], section: 'main' },
     { label: 'Training Catalog', icon: 'pi pi-th-large',   route: '/trainings',         roles: [] as string[], section: 'main' },
-    { label: 'Create Training',  icon: 'pi pi-plus-circle', route: '/trainings/create', roles: ['Instructor', 'HRManager'], section: 'main' },
-    // Approvals'ın yerini aldı. Instructor kendi eğitimlerini, HR hepsini görüyor.
+    { label: 'My Certificates',  icon: 'pi pi-verified',   route: '/my-certificates',   roles: ['Employee', 'Instructor'], section: 'main' },
+
+    // Ayraç altı: yönetim işleri. Sadece eğitim açabilen roller görüyor.
+    // My Trainings burada "benim açtığım eğitimler" demek - Instructor kendininkini,
+    // HR herkesinkini görüyor. Kaydolduğu eğitimler Dashboard'da.
+    { label: 'My Trainings',     icon: 'pi pi-book',       route: '/my-trainings',      roles: ['Instructor'], section: 'management' },
+    { label: 'Create Training',  icon: 'pi pi-plus-circle', route: '/trainings/create', roles: ['Instructor', 'HRManager'], section: 'management' },
     { label: 'Participants',     icon: 'pi pi-users',       route: '/participants',     roles: ['Instructor', 'HRManager'], section: 'management' }
   ];
 

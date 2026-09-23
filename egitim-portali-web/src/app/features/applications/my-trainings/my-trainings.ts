@@ -30,6 +30,9 @@ buna bakıyor — böylece üçü birbiriyle hiç çelişmiyor.
 */
 type Group = 'upcoming' | 'completed' | 'withdrawn' | 'removed' | 'cancelled' | 'notEnrolled';
 
+// Ustteki sayaclardan hangisine basildigi. 'all' = filtre yok.
+type CardFilter = 'all' | 'registered' | 'waitlisted' | 'completed';
+
 @Component({
   selector: 'app-my-trainings',
   imports: [DatePipe, FormsModule, SelectModule, DialogModule, RouterLink],
@@ -40,6 +43,9 @@ export class MyTrainings implements OnInit, OnDestroy {
   private applicationService = inject(ApplicationService);
   private messageService = inject(MessageService);
 
+  // History'de bir sayfada kac kayit gorunuyor
+  private readonly historyPageSize = 3;
+
   // --- Veri ve yüklenme durumu ---
   applications = signal<ApplicationListItem[]>([]);
   loading = signal(true);
@@ -49,6 +55,10 @@ export class MyTrainings implements OnInit, OnDestroy {
   // null = "hepsi". Katalogdaki filtrelerle aynı mantık.
   selectedCategory = signal<string | null>(null);
   selectedInstructor = signal<string | null>(null);
+
+  // --- Sayac filtresi ve History sayfasi ---
+  cardFilter = signal<CardFilter>('all');
+  historyPage = signal(1);
 
   // --- Withdraw onay penceresi ---
   // Hangi başvurunun geri çekileceği. null ise pencere kapalı.
@@ -109,6 +119,48 @@ export class MyTrainings implements OnInit, OnDestroy {
       .sort((x, y) => y.startDate.localeCompare(x.startDate));
   });
 
+  /*
+  Sayaca basilinca hangi bolum gorunuyor:
+    Registered / On waitlist -> sadece Upcoming
+    Completed                -> sadece History
+    filtre yok               -> ikisi birden
+
+  Ilgisiz bolumu bos gostermek yerine tamamen gizliyoruz.
+  "Completed"a basip altta bos bir Upcoming gormek kafa karistirirdi.
+  */
+  showUpcoming = computed(() => this.cardFilter() !== 'completed');
+
+  showHistory = computed(() =>
+    this.cardFilter() === 'all' || this.cardFilter() === 'completed'
+  );
+
+  visibleUpcoming = computed(() => {
+    const list = this.upcoming();
+    switch (this.cardFilter()) {
+      case 'registered': return list.filter(a => a.status === 'Applied');
+      case 'waitlisted': return list.filter(a => a.status === 'Waitlisted');
+      default:           return list;
+    }
+  });
+
+  visibleHistory = computed(() => {
+    const list = this.history();
+    return this.cardFilter() === 'completed'
+      ? list.filter(a => this.groupOf(a) === 'completed')
+      : list;
+  });
+
+  historyTotalPages = computed(() =>
+    Math.max(1, Math.ceil(this.visibleHistory().length / this.historyPageSize))
+  );
+
+  // Ekranda gorunen gecmis satirlari. Sayfalama bellekte -
+  // kayit sayisi az, sunucudan parca parca istemeye deger degil.
+  pagedHistory = computed(() => {
+    const start = (this.historyPage() - 1) * this.historyPageSize;
+    return this.visibleHistory().slice(start, start + this.historyPageSize);
+  });
+
   // Filtre seçenekleri History'deki kayıtlardan üretiliyor —
   // kişinin hiç almadığı bir kategori listede boşuna durmasın.
   categoryOptions = computed(() => this.buildOptions('All categories',
@@ -135,6 +187,43 @@ export class MyTrainings implements OnInit, OnDestroy {
   hasChartData = computed(() =>
     this.applications().some(a => this.groupOf(a) !== 'notEnrolled'));
 
+  // --- Filtre ve sayfalama eylemleri ---
+
+  /*
+  Ayni sayaca tekrar basmak filtreyi kaldiriyor - "Show all"a
+  gitmek zorunda degilsin.
+
+  Her filtre degisiminde History 1. sayfaya donuyor. Yoksa
+  3. sayfadayken filtre uygulanip 2 kayit kalirsa bos ekran gorunurdu.
+  */
+  setCardFilter(filter: CardFilter): void {
+    this.cardFilter.set(this.cardFilter() === filter ? 'all' : filter);
+    this.historyPage.set(1);
+  }
+
+  clearCardFilter(): void {
+    this.cardFilter.set('all');
+    this.historyPage.set(1);
+  }
+
+  setCategory(value: string | null): void {
+    this.selectedCategory.set(value);
+    this.historyPage.set(1);
+  }
+
+  setInstructor(value: string | null): void {
+    this.selectedInstructor.set(value);
+    this.historyPage.set(1);
+  }
+
+  prevHistoryPage(): void {
+    if (this.historyPage() > 1) this.historyPage.update(p => p - 1);
+  }
+
+  nextHistoryPage(): void {
+    if (this.historyPage() < this.historyTotalPages()) this.historyPage.update(p => p + 1);
+  }
+
   // --- Grafik ---
 
   /*
@@ -148,6 +237,9 @@ export class MyTrainings implements OnInit, OnDestroy {
   Veri ya da canvas değişince grafiği yeniden çizer.
   effect() içinde okunan her signal "takip ediliyor": applications()
   değişirse (örneğin Withdraw sonrası) bu blok kendiliğinden tekrar çalışıyor.
+
+  Not: grafik sayac filtresine UYMUYOR - bilerek. Grafik zaten
+  butun durumlarin kategori dagilimi; filtreleyince anlamsiz kalir.
   */
   private chartEffect = effect(() => {
     const canvas = this.chartCanvas()?.nativeElement;

@@ -1,6 +1,5 @@
 <div class="my-trainings-page">
-  <p class="breadcrumb">My Trainings</p>
-  <h1 class="page-title">My Trainings</h1>
+  <p class="breadcrumb">Dashboard</p>
 
   <!-- Dört durum birbirini dışlıyor: yükleniyor, hata, hiç başvuru yok,
        ya da içerik. Katalogdaki zincirle aynı mantık. -->
@@ -25,21 +24,44 @@
   }
   @else {
 
-    <!-- Üç sayaç -->
+    <!-- Üç sayaç. Artik tiklanabilir: alttaki bolumler o duruma gore
+         suzuluyor. Ic yapisi (counter-label / counter-value) aynen
+         korundu, mevcut stiller bozulmasin diye. Dis etiket <button>
+         oldu; counter-button sinifi sadece dugme sifirlamalarini
+         tasiyor, .counter'in gorunumune dokunmuyor. -->
     <div class="counter-row">
-      <div class="counter">
+      <button
+        type="button"
+        class="counter counter-button"
+        [class.is-active]="cardFilter() === 'registered'"
+        (click)="setCardFilter('registered')">
         <p class="counter-label">Registered</p>
         <p class="counter-value">{{ registeredCount() }}</p>
-      </div>
-      <div class="counter">
+      </button>
+      <button
+        type="button"
+        class="counter counter-button"
+        [class.is-active]="cardFilter() === 'waitlisted'"
+        (click)="setCardFilter('waitlisted')">
         <p class="counter-label">On waitlist</p>
         <p class="counter-value">{{ waitlistedCount() }}</p>
-      </div>
-      <div class="counter">
+      </button>
+      <button
+        type="button"
+        class="counter counter-button"
+        [class.is-active]="cardFilter() === 'completed'"
+        (click)="setCardFilter('completed')">
         <p class="counter-label">Completed</p>
         <p class="counter-value">{{ completedCount() }}</p>
-      </div>
+      </button>
     </div>
+
+    @if (cardFilter() !== 'all') {
+      <div class="filter-note">
+        <span>Filtered view</span>
+        <button type="button" class="link-button" (click)="clearCardFilter()">Show all</button>
+      </div>
+    }
 
     <!-- Grafik. Açıklama (legend) Chart.js'in kendisinde kapalı,
          burada HTML ile çiziyoruz: yazı tipi ve renkler sayfayla aynı olsun.
@@ -62,74 +84,101 @@
       </div>
     }
 
-    <!-- Upcoming -->
-    <p class="section-title">Upcoming</p>
-    @if (upcoming().length === 0) {
-      <p class="empty-line">No upcoming trainings.</p>
-    } @else {
-      <div class="row-list">
-        @for (a of upcoming(); track a.id) {
-          <div class="row">
-            <div class="row-main">
-              <p class="row-title">{{ a.trainingTitle }}</p>
-              <p class="row-meta">
-                {{ a.startDate | date: 'd MMM y, HH:mm' }} · {{ a.location }} · {{ a.instructorName }}
-              </p>
+    <!-- Upcoming. "Completed" filtresi acikken bu bolum hic cizilmiyor. -->
+    @if (showUpcoming()) {
+      <p class="section-title">Upcoming</p>
+      @if (visibleUpcoming().length === 0) {
+        <p class="empty-line">No upcoming trainings.</p>
+      } @else {
+        <div class="row-list">
+          @for (a of visibleUpcoming(); track a.id) {
+            <div class="row">
+              <div class="row-main">
+                <p class="row-title">{{ a.trainingTitle }}</p>
+                <p class="row-meta">
+                  {{ a.startDate | date: 'd MMM y, HH:mm' }} · {{ a.location }} · {{ a.instructorName }}
+                </p>
+              </div>
+              <span class="badge" [class]="getBadgeClass(a)">{{ getBadgeLabel(a) }}</span>
+              <!-- Başlamış eğitimde Withdraw yok. Yer tutucu boşluk
+                   bırakıyoruz ki rozetler alt alta hizalı kalsın. -->
+              @if (canWithdraw(a)) {
+                <button class="action-button action-danger" (click)="openWithdraw(a)">Withdraw</button>
+              } @else {
+                <span class="action-placeholder"></span>
+              }
             </div>
-            <span class="badge" [class]="getBadgeClass(a)">{{ getBadgeLabel(a) }}</span>
-            <!-- Başlamış eğitimde Withdraw yok. Yer tutucu boşluk
-                 bırakıyoruz ki rozetler alt alta hizalı kalsın. -->
-            @if (canWithdraw(a)) {
-              <button class="action-button action-danger" (click)="openWithdraw(a)">Withdraw</button>
-            } @else {
-              <span class="action-placeholder"></span>
-            }
-          </div>
-        }
-      </div>
+          }
+        </div>
+      }
     }
 
-    <!-- History. Filtreler sadece burada — uzayacak liste bu. -->
-    <div class="section-head">
-      <p class="section-title">History</p>
-      <div class="filter-bar">
-        <p-select
-          [options]="categoryOptions()"
-          [ngModel]="selectedCategory()"
-          (onChange)="selectedCategory.set($event.value)"
-          optionLabel="label"
-          optionValue="value"
-          placeholder="All categories"
-          styleClass="filter-select" />
-        <p-select
-          [options]="instructorOptions()"
-          [ngModel]="selectedInstructor()"
-          (onChange)="selectedInstructor.set($event.value)"
-          optionLabel="label"
-          optionValue="value"
-          placeholder="All instructors"
-          styleClass="filter-select" />
+    <!-- History. Filtreler sadece burada — uzayacak liste bu.
+         Sayfada en fazla 3 kayit, gerisi oklarla. -->
+    @if (showHistory()) {
+      <div class="section-head">
+        <p class="section-title">History</p>
+        <div class="filter-bar">
+          <p-select
+            [options]="categoryOptions()"
+            [ngModel]="selectedCategory()"
+            (onChange)="setCategory($event.value)"
+            optionLabel="label"
+            optionValue="value"
+            placeholder="All categories"
+            styleClass="filter-select" />
+          <p-select
+            [options]="instructorOptions()"
+            [ngModel]="selectedInstructor()"
+            (onChange)="setInstructor($event.value)"
+            optionLabel="label"
+            optionValue="value"
+            placeholder="All instructors"
+            styleClass="filter-select" />
+        </div>
       </div>
-    </div>
 
-    @if (history().length === 0) {
-      <p class="empty-line">Nothing to show here.</p>
-    } @else {
-      <div class="row-list">
-        @for (a of history(); track a.id) {
-          <!-- Vazgeçilen, iptal edilen ve katılınamayanlar soluk:
-               kişinin geçmişinde duruyor ama "yapılmış" bir şey değil. -->
-          <div class="row" [class.row-faded]="getBadgeLabel(a) !== 'Completed'">
-            <div class="row-main">
-              <p class="row-title">{{ a.trainingTitle }}</p>
-              <p class="row-meta">
-                {{ a.startDate | date: 'd MMM y' }} · {{ a.category }} · {{ a.instructorName }}
-              </p>
+      @if (visibleHistory().length === 0) {
+        <p class="empty-line">Nothing to show here.</p>
+      } @else {
+        <div class="row-list">
+          @for (a of pagedHistory(); track a.id) {
+            <!-- Vazgeçilen, iptal edilen ve katılınamayanlar soluk:
+                 kişinin geçmişinde duruyor ama "yapılmış" bir şey değil. -->
+            <div class="row" [class.row-faded]="getBadgeLabel(a) !== 'Completed'">
+              <div class="row-main">
+                <p class="row-title">{{ a.trainingTitle }}</p>
+                <p class="row-meta">
+                  {{ a.startDate | date: 'd MMM y' }} · {{ a.category }} · {{ a.instructorName }}
+                </p>
+              </div>
+              <span class="badge" [class]="getBadgeClass(a)">{{ getBadgeLabel(a) }}</span>
             </div>
-            <span class="badge" [class]="getBadgeClass(a)">{{ getBadgeLabel(a) }}</span>
+          }
+        </div>
+
+        @if (historyTotalPages() > 1) {
+          <div class="history-pager">
+            <button
+              type="button"
+              class="pager-btn"
+              [disabled]="historyPage() === 1"
+              (click)="prevHistoryPage()"
+              aria-label="Previous page">
+              <i class="pi pi-chevron-left"></i>
+            </button>
+            <span class="pager-info">{{ historyPage() }} / {{ historyTotalPages() }}</span>
+            <button
+              type="button"
+              class="pager-btn"
+              [disabled]="historyPage() === historyTotalPages()"
+              (click)="nextHistoryPage()"
+              aria-label="Next page">
+              <i class="pi pi-chevron-right"></i>
+            </button>
           </div>
         }
-      </div>
+      }
     }
   }
 
