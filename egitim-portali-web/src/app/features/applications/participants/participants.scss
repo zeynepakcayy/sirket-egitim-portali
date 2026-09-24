@@ -243,3 +243,52 @@
   gap: 0.5rem;
   margin-top: 1.5rem;
 }
+
+
+/* ---------- YOKLAMA DUGMELERI ---------- */
+
+.attendance-group {
+  display: flex;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+
+/*
+Isaretlenmemis hali notr. Secilince renkleniyor ama renk tek basina
+tasimiyor: secili dugme ayni zamanda kalin yaziyor, renk koru biri
+de ayirt edebilsin.
+*/
+.attendance-btn {
+  padding: 0.3rem 0.7rem;
+  background: transparent;
+  border: 1px solid var(--p-surface-600);
+  border-radius: 6px;
+  color: var(--p-text-muted-color);
+  font-family: inherit;
+  font-size: 0.75rem;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    border-color: var(--p-text-muted-color);
+    color: var(--p-text-color);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+
+  &.is-attended {
+    background: rgba(95, 184, 122, 0.16);
+    border-color: #5fb87a;
+    color: #5fb87a;
+    font-weight: 600;
+  }
+
+  &.is-absent {
+    background: rgba(224, 96, 63, 0.16);
+    border-color: #e0603f;
+    color: #e0603f;
+    font-weight: 600;
+  }
+}

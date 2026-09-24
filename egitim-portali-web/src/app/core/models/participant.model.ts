@@ -21,6 +21,8 @@ export interface Participant {
   department: string | null;
   // Applied, Waitlisted, Cancelled, Removed
   status: string;
+  // Pending, Attended, NotAttended - egitim bittikten sonra isaretleniyor
+  attendance: string;
   appliedAt: string;
 }
 

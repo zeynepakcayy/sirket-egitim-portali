@@ -21,6 +21,8 @@ import { Participants } from './features/applications/participants/participants'
 
 import { Home } from './features/home/home';
 
+import { MyCertificates } from './features/certificates/my-certificates/my-certificates';
+
 export const routes: Routes = [
   //layout dışında, tam ekran açılan sayfalar
   { path: 'login', component: Login },
@@ -56,7 +58,7 @@ export const routes: Routes = [
       // HRManager başvuru yapamadığı için bu sayfa ona kapalı.
       {
         path: 'my-certificates',
-        component: Dashboard,
+        component: MyCertificates,
         canActivate: [roleGuard],
         data: { roles: ['Employee', 'Instructor'] }
       },

@@ -69,6 +69,20 @@ export class Participants implements OnInit {
   */
   canRemove = computed(() => this.selectedTraining()?.status === 'OpenForApplication');
 
+  /*
+  Yoklama tam tersi: sadece bitmis egitimde. Backend de ayni
+  kurali uyguluyor. Egitim bitmeden "katilmadi" isaretlemek
+  anlamsiz olurdu.
+  */
+  canMarkAttendance = computed(() => this.selectedTraining()?.status === 'Completed');
+
+  attendedCount = computed(() =>
+    this.registered().filter(p => p.attendance === 'Attended').length);
+
+  // Hangi satirin istegi yolda. O satirin dugmeleri pasif oluyor,
+  // ust uste tiklanip iki istek gitmesin diye.
+  savingAttendance = signal<string | null>(null);
+
   // --- Çıkarma onay penceresi ---
   removeTarget = signal<Participant | null>(null);
   removing = signal(false);
@@ -133,6 +147,48 @@ export class Participants implements OnInit {
         this.list.set(null);
         this.loadingParticipants.set(false);
         this.loadError.set(true);
+      }
+    });
+  }
+
+  // --- Yoklama ---
+
+  /*
+  Ayni dugmeye tekrar basmak isaretlemeyi kaldiriyor (Pending'e
+  donuyor). Yanlislikla basildiginda geri almanin yolu olsun.
+
+  Basarili olunca butun listeyi yeniden cekmiyoruz, sadece o satiri
+  degistiriyoruz: liste uzunsa bekleme olmuyor ve ekran zipzip
+  oynamiyor. Yeni nesne uretiyoruz (...item) cunku signal ayni
+  nesnenin icini degistirirsek degisimi fark etmiyor.
+  */
+  markAttendance(p: Participant, status: string): void {
+    const next = p.attendance === status ? 'Pending' : status;
+
+    this.savingAttendance.set(p.applicationId);
+
+    this.participantService.setAttendance(p.applicationId, next).subscribe({
+      next: () => {
+        this.savingAttendance.set(null);
+        this.list.update(current => {
+          if (current === null) return current;
+          return {
+            ...current,
+            participants: current.participants.map(item =>
+              item.applicationId === p.applicationId
+                ? { ...item, attendance: next }
+                : item
+            )
+          };
+        });
+      },
+      error: (err) => {
+        console.error('Attendance error:', err);
+        this.savingAttendance.set(null);
+        const summary = typeof err?.error === 'string' && err.error.length > 0
+          ? err.error
+          : 'Could not save attendance.';
+        this.messageService.add({ severity: 'error', summary, life: 4000 });
       }
     });
   }

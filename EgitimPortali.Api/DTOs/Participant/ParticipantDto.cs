@@ -14,5 +14,8 @@ public class ParticipantDto
 
     // Applied, Waitlisted, Cancelled, Removed
     public string Status { get; set; } = string.Empty;
+        
+    // "Pending", "Attended" ya da "NotAttended"
+    public string Attendance { get; set; } = string.Empty;
     public DateTime AppliedAt { get; set; }
 }

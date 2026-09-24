@@ -2,6 +2,10 @@
   <p class="breadcrumb">Management</p>
   <h1 class="page-title">Participants</h1>
 
+   <p style="color: #e0603f;">
+    DEBUG — status: "{{ selectedTraining()?.status }}" · id: {{ selectedTrainingId() }}
+  </p>
+
   @if (loadingTrainings()) {
     <p class="state-text">Loading...</p>
   }
@@ -42,7 +46,8 @@
     }
     @else if (list(); as l) {
 
-      <!-- Üç sayaç. İlki kapasiteyle birlikte: doluluk tek bakışta. -->
+      <!-- Sayaçlar. İlki kapasiteyle birlikte: doluluk tek bakışta.
+           Yoklama sayacı sadece eğitim bittiğinde çıkıyor. -->
       <div class="counter-row">
         <div class="counter">
           <p class="counter-label">Registered</p>
@@ -56,7 +61,18 @@
           <p class="counter-label">Withdrawn or removed</p>
           <p class="counter-value">{{ inactive().length }}</p>
         </div>
+        @if (canMarkAttendance()) {
+          <div class="counter">
+            <p class="counter-label">Attended</p>
+            <p class="counter-value">{{ attendedCount() }} / {{ registered().length }}</p>
+          </div>
+        }
       </div>
+
+      <!-- Eğitim bitmişse yoklama alınabileceğini söyle. -->
+      @if (canMarkAttendance()) {
+        <p class="hint">This training has ended. Mark who attended below.</p>
+      }
 
       <!-- Registered -->
       <p class="section-title">Registered</p>
@@ -74,6 +90,26 @@
               </div>
               <span class="row-date">{{ p.appliedAt | date: 'd MMM' }}</span>
               <span class="badge badge-registered">Registered</span>
+
+              <!-- Yoklama. Seçili düğme renkli; aynısına tekrar basmak
+                   işaretlemeyi kaldırıyor. -->
+              @if (canMarkAttendance()) {
+                <span class="attendance-group">
+                  <button
+                    type="button"
+                    class="attendance-btn"
+                    [class.is-attended]="p.attendance === 'Attended'"
+                    [disabled]="savingAttendance() === p.applicationId"
+                    (click)="markAttendance(p, 'Attended')">Attended</button>
+                  <button
+                    type="button"
+                    class="attendance-btn"
+                    [class.is-absent]="p.attendance === 'NotAttended'"
+                    [disabled]="savingAttendance() === p.applicationId"
+                    (click)="markAttendance(p, 'NotAttended')">Absent</button>
+                </span>
+              }
+
               @if (canRemove()) {
                 <button class="action-button action-danger" (click)="openRemove(p)">Remove</button>
               }
@@ -83,7 +119,8 @@
       }
 
       <!-- Waitlist. Sıra numarası $index'ten geliyor: backend başvuru
-           tarihine göre sıralı gönderiyor, 1 numara ilk terfi edecek kişi. -->
+           tarihine göre sıralı gönderiyor, 1 numara ilk terfi edecek kişi.
+           Yoklama burada yok - yedekte kalan kişi eğitime katılmadı. -->
       <p class="section-title section-gap">Waitlist</p>
       @if (waitlist().length === 0) {
         <p class="empty-line">The waitlist is empty.</p>

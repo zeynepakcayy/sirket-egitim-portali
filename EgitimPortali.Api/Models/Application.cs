@@ -13,5 +13,10 @@ public class Application
     public DateTime AppliedAt { get; set; } = DateTime.UtcNow;
     public ApplicationStatus Status { get; set; } = ApplicationStatus.Applied;    public AttendanceStatus AttendanceStatus { get; set; } = AttendanceStatus.Pending;
 
+    // Egitim bittikten sonra egitmen isaretliyor. Varsayilan Pending:
+    // "henuz karar verilmedi". Katilmadi ile karistirilmamali -
+    // biri "gelmedi", oteki "daha bakilmadi" demek.
+    public AttendanceStatus Attendance { get; set; } = AttendanceStatus.Pending;
+
     public Certificate? Certificate { get; set; }
 }

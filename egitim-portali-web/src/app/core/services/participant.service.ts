@@ -23,6 +23,12 @@ export class ParticipantService {
     return this.http.get<ParticipantList>(`${this.baseUrl}/${trainingId}`);
   }
 
+  // PUT /api/participants/{applicationId}/attendance — yoklama işaretle
+  // Backend 204 döndürüyor, gövde yok.
+  setAttendance(applicationId: string, status: string): Observable<void> {
+    return this.http.put<void>(`${this.baseUrl}/${applicationId}/attendance`, { status });
+  }
+
   // DELETE /api/participants/{applicationId} — listeden çıkar
   // Backend 204 döndürüyor, gövde yok.
   removeParticipant(applicationId: string): Observable<void> {

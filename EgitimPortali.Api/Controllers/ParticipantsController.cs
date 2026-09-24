@@ -1,9 +1,10 @@
 /*
 Katılımcı yönetimi. Participants sayfası bunu kullanıyor.
-Üç endpoint:
-  GET    /api/participants/trainings        — yönetebildiğim eğitimler (seçici için)
-  GET    /api/participants/{trainingId}     — o eğitimin katılımcıları
-  DELETE /api/participants/{applicationId}  — bir kişiyi listeden çıkar
+Dört endpoint:
+  GET    /api/participants/trainings                   — yönetebildiğim eğitimler (seçici için)
+  GET    /api/participants/{trainingId}                — o eğitimin katılımcıları
+  PUT    /api/participants/{applicationId}/attendance  — yoklama işaretle
+  DELETE /api/participants/{applicationId}             — bir kişiyi listeden çıkar
 
 Yetki kuralı: HRManager tüm eğitimlerde, Instructor sadece kendi
 açtıklarında. Employee bu endpoint'lere hiç erişemiyor.
@@ -43,7 +44,7 @@ public class ParticipantsController : ControllerBase
     }
 
     /*
-    İsteği gönderenin kimliği. Üç endpoint'te de lazım olduğu için
+    İsteği gönderenin kimliği. Endpoint'lerin hepsinde lazım olduğu için
     ayrı bir metotta. Token bozuksa Guid.Empty dönüyor — hiçbir
     eğitimin sahibi Guid.Empty olmadığı için yetki kontrolünden geçemez.
     */
@@ -73,10 +74,9 @@ public class ParticipantsController : ControllerBase
         }
 
         /*
-        Geçmiş eğitimler de listede — katılım kaydı (attendance)
-        aşamasında bitmiş eğitimin listesine bakmak gerekecek.
-        Tarihe göre sıralı; frontend en yakın gelecek eğitimi
-        otomatik seçiyor.
+        Geçmiş eğitimler de listede — yoklama bitmiş eğitimde
+        yapılıyor. Tarihe göre sıralı; frontend en yakın gelecek
+        eğitimi otomatik seçiyor.
         */
         var trainings = await query
             .OrderBy(t => t.StartDate)
@@ -128,12 +128,63 @@ public class ParticipantsController : ControllerBase
                     Email = a.User?.Email ?? string.Empty,
                     Department = a.User?.Department,
                     Status = a.Status.ToString(),
+                    Attendance = a.Attendance.ToString(),
                     AppliedAt = a.AppliedAt
                 })
                 .ToList()
         };
 
         return Ok(dto);
+    }
+
+    // PUT /api/participants/{applicationId}/attendance
+    [HttpPut("{applicationId}/attendance")]
+    public async Task<IActionResult> SetAttendance(Guid applicationId, [FromBody] UpdateAttendanceDto dto)
+    {
+        /*
+        Gelen yazıyı enum'a çeviriyoruz. IsDefined kontrolü şart:
+        TryParse sayı yazılarını da kabul ediyor ("7" gibi), o da
+        enum'da olmayan bir değer üretirdi.
+        */
+        if (!Enum.TryParse<AttendanceStatus>(dto.Status, true, out var attendance) ||
+            !Enum.IsDefined(attendance))
+            return BadRequest("Unknown attendance value.");
+
+        var application = await _context.Applications
+            .Include(a => a.Training)
+            .FirstOrDefaultAsync(a => a.Id == applicationId);
+
+        if (application == null || application.Training == null)
+            return NotFound();
+
+        if (!CanManage(application.Training))
+            return Forbid();
+
+        /*
+        Yoklama sadece bitmiş eğitimde. Eğitim daha yapılmadan
+        "katılmadı" işaretlemek anlamsız olurdu; frontend de düğmeleri
+        gizliyor ama adres elle çağrılabiliyor.
+        */
+        var displayStatus = TrainingStatusHelper.GetDisplayStatus(
+            application.Training.Status,
+            application.Training.StartDate,
+            application.Training.EndDate);
+
+        if (displayStatus != TrainingStatus.Completed.ToString())
+            return BadRequest("Attendance can only be recorded after the training has ended.");
+
+        /*
+        Sadece kayıtlı kişiler işaretlenebiliyor. Yedekte kalan,
+        vazgeçen ya da çıkarılan biri zaten eğitime katılmadı —
+        onlara "katıldı" yazabilmek veriyi tutarsız yapardı.
+        */
+        if (application.Status != ApplicationStatus.Applied)
+            return BadRequest("Only registered participants can be marked.");
+
+        application.Attendance = attendance;
+        await _context.SaveChangesAsync();
+
+        return NoContent();
     }
 
     // DELETE /api/participants/{applicationId}
